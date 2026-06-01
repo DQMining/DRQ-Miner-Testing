@@ -1,7 +1,8 @@
 #!/bin/bash
-# Download DRQ Miner release assets from a PRIVATE GitHub repo (Userland / Termux).
+# Download DRQ Miner release assets (Userland / Termux).
+# Public repo: set PUBLIC_DOWNLOAD=1 or omit GITHUB_TOKEN for direct curl/wget URLs.
 #
-# Required env:
+# Optional env (private fork only):
 #   GITHUB_TOKEN   fine-grained PAT with Contents:Read on the repo
 #   GITHUB_USER    your GitHub username
 #   GITHUB_REPO    default: DRQ-Miner-Testing
@@ -20,12 +21,21 @@ GITHUB_REPO="${GITHUB_REPO:-DRQ-Miner-Testing}"
 RELEASE_TAG="${RELEASE_TAG:-v1.0.3}"
 ASSET_NAME="${ASSET_NAME:-drqminer-linux-arm64-phone.tar.gz}"
 
-if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-  echo "Set GITHUB_TOKEN (fine-grained PAT, Contents read on ${GITHUB_REPO})"
-  exit 1
+REPO_SLUG="${GITHUB_USER}/${GITHUB_REPO}"
+
+if [[ -n "${PUBLIC_DOWNLOAD:-}" ]] || [[ -z "${GITHUB_TOKEN:-}" ]]; then
+  DIRECT_URL="https://github.com/${REPO_SLUG}/releases/download/${RELEASE_TAG}/${ASSET_NAME}"
+  echo "Downloading (public) ${DIRECT_URL} ..."
+  curl -fsSL -o "${ASSET_NAME}" "${DIRECT_URL}"
+  SHA_FILE="${ASSET_NAME}.sha256"
+  if curl -fsSL -o "${SHA_FILE}" "https://github.com/${REPO_SLUG}/releases/download/${RELEASE_TAG}/${SHA_FILE}" 2>/dev/null; then
+    sha256sum -c "${SHA_FILE}" && echo "OK: ${ASSET_NAME}"
+  fi
+  exit 0
 fi
+
 if [[ -z "${GITHUB_USER:-}" ]]; then
-  echo "Set GITHUB_USER to your GitHub login"
+  echo "Set GITHUB_USER to your GitHub login (or use PUBLIC_DOWNLOAD=1 for public repo)"
   exit 1
 fi
 
