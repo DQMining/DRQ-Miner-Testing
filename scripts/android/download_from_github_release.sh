@@ -5,7 +5,7 @@
 #   GITHUB_TOKEN   fine-grained PAT with Contents:Read on the repo
 #   GITHUB_USER    your GitHub username
 #   GITHUB_REPO    default: DRQ-Miner-Testing
-#   RELEASE_TAG    default: v1.0.0
+#   RELEASE_TAG    default: v1.0.3
 #   ASSET_NAME     default: drqminer-linux-arm64-phone.tar.gz
 #
 # Usage:
@@ -16,7 +16,7 @@
 set -euo pipefail
 
 GITHUB_REPO="${GITHUB_REPO:-DRQ-Miner-Testing}"
-RELEASE_TAG="${RELEASE_TAG:-v1.0.0}"
+RELEASE_TAG="${RELEASE_TAG:-v1.0.3}"
 ASSET_NAME="${ASSET_NAME:-drqminer-linux-arm64-phone.tar.gz}"
 
 if [[ -z "${GITHUB_TOKEN:-}" ]]; then

@@ -39,10 +39,14 @@ if (WITH_VERUSHASH)
 
     if (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
         if (NOT XMRIG_ARM)
+            # All Verus TUs must share SSSE3+AVX2 (verus_hash.h inlines _mm_shuffle_epi8).
+            set(_verus_x86_flags "-mssse3 -mavx2 -O3")
             set_source_files_properties(
                 src/crypto/verushash/verus_clhash.cpp
                 src/crypto/verushash/verus_clhash_portable.cpp
-                PROPERTIES COMPILE_FLAGS "-mavx2 -O3"
+                src/crypto/verushash/verus_hash.cpp
+                src/crypto/verushash/VerusHash_xmrig.cpp
+                PROPERTIES COMPILE_FLAGS "${_verus_x86_flags}"
             )
         endif()
     endif()
@@ -88,12 +92,16 @@ if (WITH_VERUSHASH)
             PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Release>:/arch:AVX2>;$<$<CONFIG:RelWithDebInfo>:/arch:AVX2>"
         )
     elseif (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
-        set_source_files_properties(
-            test_vectors/test_verushash.cpp
-            src/crypto/verushash/verus_clhash.cpp
-            src/crypto/verushash/verus_clhash_portable.cpp
-            PROPERTIES COMPILE_FLAGS "-mavx2 -O3"
-        )
+        if (NOT XMRIG_ARM)
+            set_source_files_properties(
+                test_vectors/test_verushash.cpp
+                src/crypto/verushash/VerusHash_xmrig.cpp
+                src/crypto/verushash/verus_hash.cpp
+                src/crypto/verushash/verus_clhash.cpp
+                src/crypto/verushash/verus_clhash_portable.cpp
+                PROPERTIES COMPILE_FLAGS "-mssse3 -mavx2 -O3"
+            )
+        endif()
     endif()
 else()
     remove_definitions(/DXMRIG_ALGO_VERUSHASH)
