@@ -43,11 +43,15 @@ if [ -n "${CROSS_AARCH64:-}" ]; then
     -DCMAKE_SYSTEM_PROCESSOR=aarch64
     -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
     -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
-    -DOPENSSL_ROOT_DIR=/usr/lib/aarch64-linux-gnu
-    -DOPENSSL_INCLUDE_DIR=/usr/include
-    -DOPENSSL_CRYPTO_LIBRARY=/usr/lib/aarch64-linux-gnu/libcrypto.so
-    -DOPENSSL_SSL_LIBRARY=/usr/lib/aarch64-linux-gnu/libssl.so
   )
+  if [ -n "${OPENSSL_AARCH64_PREFIX:-}" ]; then
+    CMAKE_ARGS+=(
+      -DOPENSSL_ROOT_DIR="${OPENSSL_AARCH64_PREFIX}"
+      -DOPENSSL_INCLUDE_DIR="${OPENSSL_AARCH64_PREFIX}/include"
+      -DOPENSSL_CRYPTO_LIBRARY="${OPENSSL_AARCH64_PREFIX}/lib/libcrypto.a"
+      -DOPENSSL_SSL_LIBRARY="${OPENSSL_AARCH64_PREFIX}/lib/libssl.a"
+    )
+  fi
 fi
 
 cmake "${ROOT}" "${CMAKE_ARGS[@]}"
