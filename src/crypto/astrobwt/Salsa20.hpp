@@ -7,16 +7,7 @@
 #ifndef ZT_SALSA20_HPP
 #define ZT_SALSA20_HPP
 
-#include <cstdio>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
-
-#ifdef _MSC_VER
-#include <intrin.h>
-#else
-#include <x86intrin.h>
-#endif
 
 namespace ZeroTier {
 
@@ -32,10 +23,7 @@ public:
     void XORKeyStream(void *out, unsigned int bytes);
 
 private:
-    union {
-        __m128i v[4];
-        uint32_t i[16];
-    } _state;
+    uint32_t _state[16];
 };
 
 } // namespace ZeroTier

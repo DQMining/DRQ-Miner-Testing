@@ -12,6 +12,33 @@
 
 #include "Salsa20.hpp"
 
+#include <cstring>
+
+namespace ZeroTier {
+
+void Salsa20::init(const void *key, const void *iv)
+{
+    const uint32_t *const k = (const uint32_t *)key;
+    _state[0] = 0x61707865;
+    _state[1] = 0x3320646e;
+    _state[2] = 0x79622d32;
+    _state[3] = 0x6b206574;
+    _state[4] = k[3];
+    _state[5] = 0;
+    _state[6] = k[7];
+    _state[7] = k[2];
+    _state[8] = 0;
+    _state[9] = k[6];
+    _state[10] = k[1];
+    _state[11] = ((const uint32_t *)iv)[1];
+    _state[12] = k[5];
+    _state[13] = k[0];
+    _state[14] = ((const uint32_t *)iv)[0];
+    _state[15] = k[4];
+}
+
+#ifndef XMRIG_ARM
+
 #ifdef _MSC_VER
 #include <intrin.h>
 #else
@@ -28,29 +55,6 @@ public:
     }
     __m128i maskLo32, maskHi32;
 } _S20SSECONSTANTS;
-
-namespace ZeroTier {
-
-void Salsa20::init(const void *key, const void *iv)
-{
-    const uint32_t *const k = (const uint32_t *)key;
-    _state.i[0] = 0x61707865;
-    _state.i[1] = 0x3320646e;
-    _state.i[2] = 0x79622d32;
-    _state.i[3] = 0x6b206574;
-    _state.i[4] = k[3];
-    _state.i[5] = 0;
-    _state.i[6] = k[7];
-    _state.i[7] = k[2];
-    _state.i[8] = 0;
-    _state.i[9] = k[6];
-    _state.i[10] = k[1];
-    _state.i[11] = ((const uint32_t *)iv)[1];
-    _state.i[12] = k[5];
-    _state.i[13] = k[0];
-    _state.i[14] = ((const uint32_t *)iv)[0];
-    _state.i[15] = k[4];
-}
 
 void Salsa20::XORKeyStream(void *out, unsigned int bytes)
 {
@@ -70,10 +74,10 @@ void Salsa20::XORKeyStream(void *out, unsigned int bytes)
             c = tmp;
         }
 
-        __m128i X0 = _mm_loadu_si128((const __m128i *)&(_state.v[0]));
-        __m128i X1 = _mm_loadu_si128((const __m128i *)&(_state.v[1]));
-        __m128i X2 = _mm_loadu_si128((const __m128i *)&(_state.v[2]));
-        __m128i X3 = _mm_loadu_si128((const __m128i *)&(_state.v[3]));
+        __m128i X0 = _mm_loadu_si128((const __m128i *)&(_state[0]));
+        __m128i X1 = _mm_loadu_si128((const __m128i *)&(_state[4]));
+        __m128i X2 = _mm_loadu_si128((const __m128i *)&(_state[8]));
+        __m128i X3 = _mm_loadu_si128((const __m128i *)&(_state[12]));
         __m128i T;
         __m128i X0s = X0;
         __m128i X1s = X1;
@@ -131,8 +135,8 @@ void Salsa20::XORKeyStream(void *out, unsigned int bytes)
         _mm_storeu_ps(reinterpret_cast<float *>(c) + 8, _mm_castsi128_ps(_mm_unpacklo_epi64(k20, k02)));
         _mm_storeu_ps(reinterpret_cast<float *>(c) + 12, _mm_castsi128_ps(_mm_unpacklo_epi64(k31, k13)));
 
-        if (!(++_state.i[8])) {
-            ++_state.i[5];
+        if (!(++_state[8])) {
+            ++_state[5];
         }
 
         if (bytes <= 64) {
@@ -147,5 +151,62 @@ void Salsa20::XORKeyStream(void *out, unsigned int bytes)
         c += 64;
     }
 }
+
+#else
+
+#define ROTL32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
+
+static void salsa20_quarterround(uint32_t *x, int a, int b, int c, int d)
+{
+    x[b] ^= ROTL32(x[a] + x[d], 7);
+    x[c] ^= ROTL32(x[b] + x[a], 9);
+    x[d] ^= ROTL32(x[c] + x[b], 13);
+    x[a] ^= ROTL32(x[d] + x[c], 18);
+}
+
+static void salsa20_block(uint32_t out[16], const uint32_t in[16])
+{
+    uint32_t x[16];
+    memcpy(x, in, sizeof(x));
+
+    for (int r = 0; r < 10; ++r) {
+        salsa20_quarterround(x, 0, 4, 8, 12);
+        salsa20_quarterround(x, 5, 9, 13, 1);
+        salsa20_quarterround(x, 10, 14, 2, 6);
+        salsa20_quarterround(x, 15, 3, 7, 11);
+        salsa20_quarterround(x, 0, 1, 2, 3);
+        salsa20_quarterround(x, 5, 6, 7, 4);
+        salsa20_quarterround(x, 10, 11, 8, 9);
+        salsa20_quarterround(x, 15, 12, 13, 14);
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        out[i] = x[i] + in[i];
+    }
+}
+
+void Salsa20::XORKeyStream(void *out, unsigned int bytes)
+{
+    auto *c = static_cast<uint8_t *>(out);
+    uint8_t block[64];
+
+    while (bytes > 0) {
+        salsa20_block(reinterpret_cast<uint32_t *>(block), _state);
+
+        const unsigned int n = bytes < 64U ? bytes : 64U;
+        for (unsigned int i = 0; i < n; ++i) {
+            c[i] ^= block[i];
+        }
+
+        if (!(++_state[8])) {
+            ++_state[5];
+        }
+
+        bytes -= n;
+        c += n;
+    }
+}
+
+#endif
 
 } // namespace ZeroTier
