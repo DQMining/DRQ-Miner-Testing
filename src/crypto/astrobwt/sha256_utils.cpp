@@ -18,11 +18,13 @@ static bool detect_sha_ni()
     int info[4];
     __cpuidex(info, 7, 0);
     return (info[1] >> 29) & 1;
-#else
+#elif !defined(XMRIG_ARM)
     unsigned int eax, ebx, ecx, edx;
     if (__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx)) {
         return (ebx >> 29) & 1;
     }
+    return false;
+#else
     return false;
 #endif
 }
