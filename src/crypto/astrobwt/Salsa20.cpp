@@ -14,6 +14,60 @@
 
 #include <cstring>
 
+#ifndef XMRIG_ARM
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
+
+static class _s20sseconsts
+{
+public:
+    _s20sseconsts()
+    {
+        maskLo32 = _mm_shuffle_epi32(_mm_cvtsi32_si128(-1), _MM_SHUFFLE(1, 0, 1, 0));
+        maskHi32 = _mm_slli_epi64(maskLo32, 32);
+    }
+    __m128i maskLo32, maskHi32;
+} _S20SSECONSTANTS;
+
+#else
+
+#define ROTL32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
+
+static void salsa20_quarterround(uint32_t *x, int a, int b, int c, int d)
+{
+    x[b] ^= ROTL32(x[a] + x[d], 7);
+    x[c] ^= ROTL32(x[b] + x[a], 9);
+    x[d] ^= ROTL32(x[c] + x[b], 13);
+    x[a] ^= ROTL32(x[d] + x[c], 18);
+}
+
+static void salsa20_block(uint32_t out[16], const uint32_t in[16])
+{
+    uint32_t x[16];
+    memcpy(x, in, sizeof(x));
+
+    for (int r = 0; r < 10; ++r) {
+        salsa20_quarterround(x, 0, 4, 8, 12);
+        salsa20_quarterround(x, 5, 9, 13, 1);
+        salsa20_quarterround(x, 10, 14, 2, 6);
+        salsa20_quarterround(x, 15, 3, 7, 11);
+        salsa20_quarterround(x, 0, 1, 2, 3);
+        salsa20_quarterround(x, 5, 6, 7, 4);
+        salsa20_quarterround(x, 10, 11, 8, 9);
+        salsa20_quarterround(x, 15, 12, 13, 14);
+    }
+
+    for (int i = 0; i < 16; ++i) {
+        out[i] = x[i] + in[i];
+    }
+}
+
+#endif
+
 namespace ZeroTier {
 
 void Salsa20::init(const void *key, const void *iv)
@@ -38,23 +92,6 @@ void Salsa20::init(const void *key, const void *iv)
 }
 
 #ifndef XMRIG_ARM
-
-#ifdef _MSC_VER
-#include <intrin.h>
-#else
-#include <x86intrin.h>
-#endif
-
-static class _s20sseconsts
-{
-public:
-    _s20sseconsts()
-    {
-        maskLo32 = _mm_shuffle_epi32(_mm_cvtsi32_si128(-1), _MM_SHUFFLE(1, 0, 1, 0));
-        maskHi32 = _mm_slli_epi64(maskLo32, 32);
-    }
-    __m128i maskLo32, maskHi32;
-} _S20SSECONSTANTS;
 
 void Salsa20::XORKeyStream(void *out, unsigned int bytes)
 {
@@ -153,37 +190,6 @@ void Salsa20::XORKeyStream(void *out, unsigned int bytes)
 }
 
 #else
-
-#define ROTL32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
-
-static void salsa20_quarterround(uint32_t *x, int a, int b, int c, int d)
-{
-    x[b] ^= ROTL32(x[a] + x[d], 7);
-    x[c] ^= ROTL32(x[b] + x[a], 9);
-    x[d] ^= ROTL32(x[c] + x[b], 13);
-    x[a] ^= ROTL32(x[d] + x[c], 18);
-}
-
-static void salsa20_block(uint32_t out[16], const uint32_t in[16])
-{
-    uint32_t x[16];
-    memcpy(x, in, sizeof(x));
-
-    for (int r = 0; r < 10; ++r) {
-        salsa20_quarterround(x, 0, 4, 8, 12);
-        salsa20_quarterround(x, 5, 9, 13, 1);
-        salsa20_quarterround(x, 10, 14, 2, 6);
-        salsa20_quarterround(x, 15, 3, 7, 11);
-        salsa20_quarterround(x, 0, 1, 2, 3);
-        salsa20_quarterround(x, 5, 6, 7, 4);
-        salsa20_quarterround(x, 10, 11, 8, 9);
-        salsa20_quarterround(x, 15, 12, 13, 14);
-    }
-
-    for (int i = 0; i < 16; ++i) {
-        out[i] = x[i] + in[i];
-    }
-}
 
 void Salsa20::XORKeyStream(void *out, unsigned int bytes)
 {

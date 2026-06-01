@@ -2,7 +2,7 @@
 
 #ifdef _MSC_VER
 #include <intrin.h>
-#else
+#elif !defined(XMRIG_ARM)
 #include <x86intrin.h>
 #include <cpuid.h>
 #endif
