@@ -97,7 +97,7 @@ add_custom_command(
 
 add_custom_target(xmrig_astro_spsa DEPENDS "${_SPSA_DLL}" "${_SPSA_IMPLIB}")
 
-list(APPEND SOURCES_CRYPTO src/crypto/astrobwt/spsa/spsa_finalize.cpp)
+# spsa_finalize.cpp is always linked from cmake/astrobwt.cmake (stubs when DLL absent).
 list(APPEND HEADERS_CRYPTO src/crypto/astrobwt/spsa/spsa_finalize.h)
 
 set(XMRIG_ASTRO_SPSA_LIBRARY "${_SPSA_IMPLIB}")

@@ -37,7 +37,8 @@ cmake "${ROOT}" \
   -DWITH_OPENCL=ON \
   -DWITH_HTTP=ON \
   -DWITH_TLS=ON \
-  -DWITH_HWLOC=OFF
+  -DWITH_HWLOC=OFF \
+  -DXMRIG_BUILD_TESTS=OFF
 
 cmake --build . -j"${JOBS}"
 

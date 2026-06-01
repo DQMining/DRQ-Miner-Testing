@@ -27,6 +27,7 @@ if (WITH_ASTROBWT)
         src/crypto/astrobwt/sssort.c
         src/crypto/astrobwt/trsort.c
         src/crypto/astrobwt/divsufsort_utils.c
+        src/crypto/astrobwt/spsa/spsa_finalize.cpp
     )
 
     if (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
@@ -38,12 +39,21 @@ if (WITH_ASTROBWT)
         else()
             set_source_files_properties(src/crypto/astrobwt/sha256_utils.cpp PROPERTIES COMPILE_FLAGS "-msha -msse4.1 -mssse3")
         endif()
-        set_source_files_properties(
-            src/crypto/astrobwt/AstroBWT.cpp
-            src/crypto/astrobwt/wolf/wolf_compute.cpp
-            src/crypto/astrobwt/wolf/wolf_tables.cpp
-            PROPERTIES COMPILE_FLAGS "-O3 -funroll-loops -mavx2"
-        )
+        if (NOT XMRIG_ARM)
+            set_source_files_properties(
+                src/crypto/astrobwt/AstroBWT.cpp
+                src/crypto/astrobwt/wolf/wolf_compute.cpp
+                src/crypto/astrobwt/wolf/wolf_tables.cpp
+                PROPERTIES COMPILE_FLAGS "-O3 -funroll-loops -mavx2"
+            )
+        else()
+            set_source_files_properties(
+                src/crypto/astrobwt/AstroBWT.cpp
+                src/crypto/astrobwt/wolf/wolf_compute.cpp
+                src/crypto/astrobwt/wolf/wolf_tables.cpp
+                PROPERTIES COMPILE_FLAGS "-O3"
+            )
+        endif()
     elseif (MSVC)
         set(_XMRIG_ASTROBWT_MSVC_OPTS "")
         foreach(_cfg IN ITEMS Release RelWithDebInfo MinSizeRel)
@@ -69,6 +79,14 @@ if (WITH_ASTROBWT)
         list(APPEND SOURCES_CRYPTO src/crypto/astrobwt/sha256_arm_crypto.cpp)
     endif()
 
+    if (NOT DEFINED XMRIG_BUILD_TESTS)
+        set(XMRIG_BUILD_TESTS ON)
+    endif()
+
+    if (NOT XMRIG_BUILD_TESTS)
+        return()
+    endif()
+
     add_executable(test_astrobwt
         test_vectors/test_astrobwt.cpp
         src/crypto/astrobwt/AstroBWT.cpp
@@ -90,6 +108,7 @@ if (WITH_ASTROBWT)
         target_link_libraries(test_astrobwt PRIVATE "${XMRIG_ASTRO_SPSA_LIBRARY}")
     endif()
     target_include_directories(test_astrobwt PRIVATE src)
+    set_target_properties(test_astrobwt PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
     target_compile_definitions(test_astrobwt PRIVATE XMRIG_ALGO_ASTROBWT)
     if (XMRIG_ASTRO_SPSA_ENABLED)
         target_compile_definitions(test_astrobwt PRIVATE XMRIG_ASTROBWT_USE_SPSA)

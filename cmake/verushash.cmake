@@ -36,6 +36,25 @@ if (WITH_VERUSHASH)
         src/crypto/verushash/haraka.c
         src/crypto/verushash/cuda/VerusCudaBridge.cpp
     )
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
+        if (NOT XMRIG_ARM)
+            set_source_files_properties(
+                src/crypto/verushash/verus_clhash.cpp
+                src/crypto/verushash/verus_clhash_portable.cpp
+                PROPERTIES COMPILE_FLAGS "-mavx2 -O3"
+            )
+        endif()
+    endif()
+
+    if (NOT DEFINED XMRIG_BUILD_TESTS)
+        set(XMRIG_BUILD_TESTS ON)
+    endif()
+
+    if (NOT XMRIG_BUILD_TESTS)
+        return()
+    endif()
+
     add_executable(test_verushash
         test_vectors/test_verushash.cpp
         src/crypto/verushash/VerusHash_xmrig.cpp
