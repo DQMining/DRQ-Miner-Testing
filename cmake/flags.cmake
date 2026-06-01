@@ -1,0 +1,119 @@
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 11)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_definitions(-DNDEBUG)
+endif()
+
+include(CheckSymbolExists)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES GNU)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-strict-aliasing")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Ofast")
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fexceptions -fno-rtti -Wno-strict-aliasing -Wno-class-memaccess")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -s")
+
+    if (ARM_TARGET EQUAL 8)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARM8_CXX_FLAGS}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARM8_CXX_FLAGS} -flax-vector-conversions")
+    elseif (ARM_TARGET EQUAL 7)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv7-a -mfpu=neon -flax-vector-conversions")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mfpu=neon -flax-vector-conversions")
+    elseif (XMRIG_RISCV)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${RVARCH}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${RVARCH}")
+        
+        add_definitions(-DHAVE_ROTR)
+    else()
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -maes")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
+
+        add_definitions(-DHAVE_ROTR)
+    endif()
+
+    if (WIN32)
+        if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+        else()
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -Wl,--large-address-aware")
+        endif()
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Haiku")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
+    else()
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
+    endif()
+
+    if (BUILD_STATIC)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    endif()
+
+    add_definitions(-D_GNU_SOURCE -DHAVE_BUILTIN_CLEAR_CACHE)
+
+elseif (CMAKE_CXX_COMPILER_ID MATCHES MSVC)
+    # CRT (/MD vs /MT) comes from CMAKE_MSVC_RUNTIME_LIBRARY (CMP0091), not these flags — avoids fighting GhostRider/hwloc/CUDA.
+    set(CMAKE_C_FLAGS_RELEASE "/MP /O2 /Oi /fp:fast /arch:AVX2 /DNDEBUG /GL")
+    set(CMAKE_CXX_FLAGS_RELEASE "/MP /O2 /Oi /fp:fast /arch:AVX2 /DNDEBUG /GL")
+
+    # Visual Studio often defaults to RelWithDebInfo; the old /Ob1-only flags made crypto ~10x slower.
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "/MP /O2 /Oi /fp:fast /arch:AVX2 /GL /Zi /DRELWITHDEBINFO")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MP /O2 /Oi /fp:fast /arch:AVX2 /GL /Zi /DRELWITHDEBINFO")
+
+    set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_RELEASE}")
+    set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_RELEASE}")
+
+    # Default MSVC Debug adds /RTC1; that is incompatible with /O2 on Verus hot TUs (cl D8016).
+    # No runtime checks in Debug for this project — use Release for production mining speed (~full opt).
+    set(CMAKE_C_FLAGS_DEBUG "/MP /Zi /Od /Ob0 /D_DEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "/MP /Zi /Od /Ob0 /D_DEBUG")
+
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS -DNOMINMAX -DHAVE_ROTR)
+
+elseif (CMAKE_CXX_COMPILER_ID MATCHES Clang)
+
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -funroll-loops -fmerge-all-constants")
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fexceptions -fno-rtti")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -funroll-loops -fmerge-all-constants")
+
+    if (ARM_TARGET EQUAL 8)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARM8_CXX_FLAGS}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARM8_CXX_FLAGS}")
+    elseif (ARM_TARGET EQUAL 7)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpu=neon -march=${CMAKE_SYSTEM_PROCESSOR}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpu=neon -march=${CMAKE_SYSTEM_PROCESSOR}")
+    elseif (XMRIG_RISCV)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${RVARCH}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${RVARCH}")
+        
+        add_definitions(-DHAVE_ROTR)
+    else()
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -maes")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
+
+        check_symbol_exists("_rotr" "x86intrin.h" HAVE_ROTR)
+        if (HAVE_ROTR)
+            add_definitions(-DHAVE_ROTR)
+        endif()
+    endif()
+
+    if ((WIN32 AND ARM_TARGET) OR BUILD_STATIC)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+    endif()
+endif()
+
+if (NOT WIN32)
+    check_symbol_exists("__builtin___clear_cache" "stdlib.h" HAVE_BUILTIN_CLEAR_CACHE)
+    if (HAVE_BUILTIN_CLEAR_CACHE)
+        add_definitions(-DHAVE_BUILTIN_CLEAR_CACHE)
+    endif()
+endif()

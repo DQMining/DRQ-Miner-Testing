@@ -1,0 +1,127 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 23, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-x64-base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64"
+    },
+    {
+      "name": "x64-Debug",
+      "displayName": "x64 Debug",
+      "inherits": "windows-x64-base",
+      "binaryDir": "${sourceDir}/out/build/x64-Debug"
+    },
+    {
+      "name": "x64-Release",
+      "displayName": "x64 Release (use for mining — full speed)",
+      "inherits": "windows-x64-base",
+      "binaryDir": "${sourceDir}/out/build/x64-Release"
+    },
+    {
+      "name": "linux-x64-base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/build/linux-x64-Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "linux-x64-Release",
+      "displayName": "Linux x64 Release",
+      "inherits": "linux-x64-base"
+    },
+    {
+      "name": "linux-arm64-base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/build/linux-arm64-Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ARM_V8": "ON"
+      }
+    },
+    {
+      "name": "linux-arm64-Release",
+      "displayName": "Linux ARM64 Release",
+      "inherits": "linux-arm64-base"
+    },
+    {
+      "name": "macos-arm64-base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/build/macos-arm64-Release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ARM_V8": "ON"
+      }
+    },
+    {
+      "name": "macos-arm64-Release",
+      "displayName": "macOS Apple Silicon Release",
+      "inherits": "macos-arm64-base"
+    },
+    {
+      "name": "x64-Release-verus-kepler",
+      "displayName": "x64 Release + Verus CUDA Kepler/GRID (CUDA 11.8)",
+      "inherits": "windows-x64-base",
+      "binaryDir": "${sourceDir}/out/build/x64-Release-verus-kepler",
+      "cacheVariables": {
+        "XMRIG_VERUS_CUDA_LEGACY_KEPLER": "ON",
+        "CMAKE_CUDA_ARCHITECTURES": "35;37;50;52;61"
+      }
+    },
+    {
+      "name": "android-arm64-Release",
+      "displayName": "Android arm64 Verus (NDK, experimental)",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/out/build/android-arm64-Release",
+      "toolchainFile": "$env{ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-24",
+        "ARM_V8": "ON",
+        "WITH_CUDA": "OFF",
+        "WITH_VERUSHASH": "ON",
+        "WITH_OPENCL": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-Debug",
+      "configurePreset": "x64-Debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-Release",
+      "configurePreset": "x64-Release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-x64-Release",
+      "configurePreset": "linux-x64-Release"
+    },
+    {
+      "name": "linux-arm64-Release",
+      "configurePreset": "linux-arm64-Release"
+    },
+    {
+      "name": "macos-arm64-Release",
+      "configurePreset": "macos-arm64-Release"
+    },
+    {
+      "name": "x64-Release-verus-kepler",
+      "configurePreset": "x64-Release-verus-kepler",
+      "configuration": "Release"
+    },
+    {
+      "name": "android-arm64-Release",
+      "configurePreset": "android-arm64-Release"
+    }
+  ]
+}

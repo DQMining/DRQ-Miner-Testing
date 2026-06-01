@@ -1,0 +1,25 @@
+{
+  "autosave": true,
+  "cpu": {
+    "enabled": true,
+    "huge-pages": false,
+    "priority": 0,
+    "max-threads-hint": 4
+  },
+  "opencl": {
+    "enabled": false
+  },
+  "cuda": {
+    "enabled": false
+  },
+  "pools": [
+    {
+      "url": "stratum+tcp://POOL_HOST:PORT",
+      "user": "YOUR_VRSC_ADDRESS",
+      "pass": "x",
+      "algo": "verus",
+      "keepalive": true,
+      "tls": false
+    }
+  ]
+}

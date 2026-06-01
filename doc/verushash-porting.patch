@@ -1,0 +1,613 @@
+## VerusHash Porting Patch
+
+This file contains human-maintained, unified-diff style notes for changes made while porting VerusHash into this xmrig-based miner.
+
+- **Baseline**: upstream `Slashx124/xmrig-test` (`master`).
+- **Note**: Only files that differ from the baseline and are relevant to VerusHash are recorded here.
+
+Sections are grouped by file. Each section uses a diff-like style:
+
+```diff
+--- a/path/to/file.cpp   (upstream xmrig-test)
++++ b/path/to/file.cpp   (this ported tree)
+@@ context
+- old line(s)
++ new line(s)
+```
+
+```diff
+--- a/src/base/net/stratum/Job.h
++++ b/src/base/net/stratum/Job.h
+@@
+-    static constexpr const size_t kMaxBlobSize = 408;
++    static constexpr const size_t kMaxBlobSize = 2048;
+@@
++    inline const String &verusNTime() const             { return m_verusNTime; }
++    inline const String &verusSolution() const          { return m_verusSolution; }
+@@
++    inline void setVerusNTime(const String &ntime)      { m_verusNTime = ntime; }
++    inline void setVerusSolution(const String &solution) { m_verusSolution = solution; m_verusSolutionSize = static_cast<uint16_t>(solution.isNull() ? 0 : (strlen(solution.data()) / 2)); }
+```
+
+```diff
+--- a/src/base/net/stratum/Job.cpp
++++ b/src/base/net/stratum/Job.cpp
+@@
++    case Algorithm::VERUSHASH_FAMILY:
++        if (m_verusSolutionSize > 32 && m_size >= (108 + m_verusSolutionSize)) {
++            return 108 + m_verusSolutionSize - ((m_verusSolutionSize % 32) + 15);
++        }
++        break;
+```
+
+```diff
+--- a/src/net/JobResult.h
++++ b/src/net/JobResult.h
+@@
++    String verusNTime;
++    String verusSolution;
+@@
++        if (algorithm.family() == Algorithm::VERUSHASH_FAMILY && !verusSolution.isNull()) {
++            // Write nonce into Verus solution mutable tail area and preserve pool nonce marker.
++            // ... see code for exact byte placement ...
++        }
+```
+
+```diff
+--- a/src/base/net/stratum/EthStratumClient.cpp
++++ b/src/base/net/stratum/EthStratumClient.cpp
+@@
+-    if (result.algorithm.family() == Algorithm::VERUSHASH_FAMILY) {
+-        // Verus pools expect worker, job id, ntime, nonce.
+-        params.PushBack(m_ntime.toJSON(), allocator);
+-        params.PushBack(Value(s.str().c_str(), allocator), allocator);
+-    }
++    if (result.algorithm.family() == Algorithm::VERUSHASH_FAMILY) {
++        // Verus pools expect worker, job id, ntime, extraNonce2, solution.
++        params.PushBack(result.verusNTime.toJSON(), allocator);
++        params.PushBack(Value(extraNonce2Hex.c_str(), allocator), allocator);
++        params.PushBack(result.verusSolution.toJSON(), allocator);
++    }
+@@
++            // Build submit-compatible solution: CompactSize(1344) + 1344-byte solution.
++            std::string solution = "fd4005";
++            solution += solutionDataPadded;
++            job.setVerusNTime(arr[5].GetString());
++            job.setVerusSolution(solution.c_str());
+```
+
+```diff
+--- a/src/base/net/stratum/Pool.cpp
++++ b/src/base/net/stratum/Pool.cpp
+@@
+-#       if defined XMRIG_ALGO_KAWPOW || defined XMRIG_ALGO_GHOSTRIDER
++#       if defined XMRIG_ALGO_KAWPOW || defined XMRIG_ALGO_GHOSTRIDER || defined XMRIG_ALGO_VERUSHASH
+         const uint32_t f = m_algorithm.family();
+-        if ((f == Algorithm::KAWPOW) || (f == Algorithm::GHOSTRIDER) || (m_coin == Coin::RAVEN)) {
++        if ((f == Algorithm::KAWPOW) || (f == Algorithm::GHOSTRIDER) || (m_coin == Coin::RAVEN)
++#       ifdef XMRIG_ALGO_VERUSHASH
++            || (f == Algorithm::VERUSHASH_FAMILY) || (m_coin == Coin::VERUS)
++#       endif
++           ) {
+             client = new EthStratumClient(id, Platform::userAgent(), listener);
+         }
+```
+
+```diff
+--- a/src/base/net/stratum/EthStratumClient.h
++++ b/src/base/net/stratum/EthStratumClient.h
+@@
+     bool m_authorized   = false;
+     std::pair<uint64_t, String> m_extraNonce{};
++    String m_nextTarget;
++    String m_ntime;
+```
+
+```diff
+--- a/src/base/net/stratum/EthStratumClient.cpp
++++ b/src/base/net/stratum/EthStratumClient.cpp
+@@
+ void xmrig::EthStratumClient::login()
+ {
+     m_results.clear();
+     subscribe();
++    // Verus pools expect subscribe response before authorize.
++    if (algo.family() == Algorithm::VERUSHASH_FAMILY) {
++        return;
++    }
+     authorize();
+ }
+@@
++    if (algo.family() == Algorithm::VERUSHASH_FAMILY) {
++        authorize();
++    }
+@@
++    if (strcmp(method, "mining.set_target") == 0) {
++        if (algo.family() == Algorithm::VERUSHASH_FAMILY) {
++            m_nextTarget = params.GetArray()[0].GetString();
++        }
++        return;
++    }
+@@
++        if (algo.family() == Algorithm::VERUSHASH_FAMILY) {
++            m_ntime = arr[5].GetString();
++            std::string blob = arr[1].GetString();
++            blob += arr[2].GetString();
++            blob += arr[3].GetString();
++            blob += arr[4].GetString();
++            blob += arr[5].GetString();
++            blob += arr[6].GetString();
++            blob += arr[8].GetString();
++            job.setBlob(blob.c_str());
++            if (!m_nextTarget.isNull() && job.setTarget(m_nextTarget.data())) {
++                // use server target
++            } else {
++                job.setDiff(1000000);
++            }
++        }
+@@
++    if (result.algorithm.family() == Algorithm::VERUSHASH_FAMILY) {
++        // Verus pools expect worker, job id, ntime, nonce.
++        params.PushBack(m_ntime.toJSON(), allocator);
++        params.PushBack(Value(hexNonce, allocator), allocator);
++    }
+@@
++    if (algo.family() == Algorithm::VERUSHASH_FAMILY && m_job == job) {
++        return; // tolerate duplicate notify without reconnect loop
++    }
+```
+
+```diff
+--- a/src/backend/cpu/CpuWorker.cpp
++++ b/src/backend/cpu/CpuWorker.cpp
+@@
+-    if (m_algorithm.family() == Algorithm::VERUSHASH) {
++    if (m_algorithm.family() == Algorithm::VERUSHASH_FAMILY) {
+         return N == 1;
+     }
+```
+
+```diff
+--- a/cmake/verushash.cmake   (this tree before VS portability pass)
++++ b/cmake/verushash.cmake   (this tree after VS portability pass)
+@@
+-        src/crypto/verushash/equihash.h
+@@
+-        src/crypto/verushash/equihash.tcc
+@@
+-        src/crypto/verushash/equihash.cpp
++        src/crypto/verushash/uint256.cpp
+```
+
+```diff
+--- a/src/crypto/verushash/common.h
++++ b/src/crypto/verushash/common.h
+@@
+-#include "sodium.h"
+-#include "compat/endian.h"
++#if defined(_WIN32)
++#include <intrin.h>
++/* local endian conversion fallbacks */
++#else
++#include <endian.h>
++#endif
+@@
+-int inline init_and_check_sodium()
+-{
+-    /* libsodium runtime checks */
+-}
++int inline init_and_check_sodium()
++{
++    return 0;
++}
+```
+
+```diff
+--- a/src/crypto/verushash/verus_clhash.h
++++ b/src/crypto/verushash/verus_clhash.h
+@@
+-#include "tinyformat.h"
++#include "crypto/verushash/uint256.h"
++#if defined(_MSC_VER)
++#ifndef __attribute__
++#define __attribute__(x)
++#endif
++#endif
+@@
+-        ss << strprintf("%02x", *((unsigned char *)&pt + l));
++        std::snprintf(hex, sizeof(hex), "%02x", *((unsigned char *)&pt + l));
++        ss << hex;
+@@
+-        ss << strprintf("%02x", *(buf + l));
++        std::snprintf(hex, sizeof(hex), "%02x", *(buf + l));
++        ss << hex;
+```
+
+```diff
+--- a/src/crypto/verushash/verus_clhash.cpp
++++ b/src/crypto/verushash/verus_clhash.cpp
+@@
+-#include "hash.h"
+-#include "crypto/verushash/primitives/block.h"
++#include "crypto/verushash/verus_clhash.h"
++#include "crypto/verushash/haraka.h"
+@@
+-bool mine_verus_v2(...)
++#if 0
++bool mine_verus_v2(...)
+@@
+-}
++}
++#endif
+```
+
+```diff
+--- a/src/crypto/verushash/verus_clhash_portable.cpp
++++ b/src/crypto/verushash/verus_clhash_portable.cpp
+@@
+-#include "hash.h"
+-#include "crypto/verushash/primitives/block.h"
++#include "crypto/verushash/verus_clhash.h"
++#include "crypto/verushash/haraka.h"
++extern "C" {
++#include "crypto/verushash/haraka_portable.h"
++}
+@@
+-bool mine_verus_v2_port(...)
++#if 0
++bool mine_verus_v2_port(...)
+@@
+-}
++}
++#endif
+```
+
+```diff
+--- a/src/crypto/verushash/haraka_portable.c
++++ b/src/crypto/verushash/haraka_portable.c
+@@
+-    unsigned char t[r];
++    unsigned char t[64];
+```
+
+```diff
+--- a/src/crypto/verushash/uint256.cpp
++++ b/src/crypto/verushash/uint256.cpp
+@@
+-#include "utilstrencodings.h"
++#include <cctype>
++static int HexDigit(char c) { ... }
+@@
+-    while (::HexDigit(*psz) != -1)
++    while (HexDigit(*psz) != -1)
+```
+
+```diff
+--- a/src/xmrig.cpp
++++ b/src/xmrig.cpp
+@@
+         if (strcmp(argv[i], "--verushash-self-test") == 0) {
+@@
++            CVerusHashV2::init();
+             unsigned char hash[32] = { 0 };
+             verus_hash_v2(hash, kTestInput, sizeof(kTestInput) - 1);
+```
+
+```diff
+--- /dev/null
++++ b/scripts/verify_verushash_selftest.py
+@@
++#!/usr/bin/env python3
++# Runs xmrig self-test and compares to official verushashpy pure-Python reference.
++# PASS when both hashes are identical.
+```
+New files relative to upstream are noted as:
+
+```diff
+--- /dev/null
++++ b/new/file.cpp
+@@
++ new contents (essential portions only)
+```
+
+The first actual change entry will appear below this line.
+
+```diff
+--- /dev/null
++++ b/src/crypto/verushash/VerusHash_xmrig.h
+@@
++/* XMRig VerusHash integration wrapper
++ *
++ * Thin glue between VerusHash reference implementation and xmrig's
++ * cn_hash_fun interface (single-hash path only).
++ */
++#ifndef XMRIG_VERUSHASH_XMRIG_H
++#define XMRIG_VERUSHASH_XMRIG_H
++#include <cstddef>
++#include <cstdint>
++#include "base/crypto/Algorithm.h"
++#include "crypto/verushash/verus_hash.h"
++struct cryptonight_ctx;
++namespace xmrig {
++namespace verushash {
++void init();
++template<Algorithm::Id ALGO>
++void single_hash(const uint8_t *input, size_t size, uint8_t *output, cryptonight_ctx **ctx, uint64_t height);
++template<>
++void single_hash<Algorithm::VERUSHASH>(const uint8_t *input, size_t size, uint8_t *output, cryptonight_ctx **ctx, uint64_t height);
++} // namespace verushash
++} // namespace xmrig
++#endif /* XMRIG_VERUSHASH_XMRIG_H */
+```
+
+```diff
+--- /dev/null
++++ b/src/crypto/verushash/VerusHash_xmrig.cpp
+@@
++/* XMRig VerusHash integration wrapper
++ *
++ * Maps xmrig's cn_hash_fun interface to the VerusHash v2 reference
++ * implementation (verus_hash_v2).
++ */
++#include "crypto/verushash/VerusHash_xmrig.h"
++namespace xmrig {
++namespace verushash {
++static bool s_initialized = false;
++void init()
++{
++    if (!s_initialized) {
++        CVerusHashV2::init();
++        s_initialized = true;
++    }
++}
++template<>
++void single_hash<Algorithm::VERUSHASH>(const uint8_t *input, size_t size, uint8_t *output, cryptonight_ctx **, uint64_t)
++{
++    if (!s_initialized) {
++        init();
++    }
++    verus_hash_v2(output, input, size);
++}
++} // namespace verushash
++} // namespace xmrig
+```
+
+```diff
+--- a/cmake/verushash.cmake   (upstream: no such file)
++++ b/cmake/verushash.cmake
+@@
+-if (WITH_VERUSHASH)
+-    add_definitions(/DXMRIG_ALGO_VERUSHASH)
+-
+-    list(APPEND HEADERS_CRYPTO
+-        src/crypto/verushash/verus_hash.h
+-        src/crypto/verushash/verus_clhash.h
+-        src/crypto/verushash/sse2neon.h
+-        src/crypto/verushash/sha512.h
+-        src/crypto/verushash/sha256.h
+-        src/crypto/verushash/sha1.h
+-        src/crypto/verushash/ripemd160.h
+-        src/crypto/verushash/hmac_sha512.h
+-        src/crypto/verushash/hmac_sha256.h
+-        src/crypto/verushash/haraka_portable.h
+-        src/crypto/verushash/haraka.h
+-        src/crypto/verushash/equihash.h
+-        src/crypto/verushash/common.h
+-        src/crypto/verushash/chacha20.h
+-        src/crypto/verushash/compat/sse2neon.h
+-        src/crypto/verushash/equihash.tcc
+-    )
+-
+-    list(APPEND SOURCES_CRYPTO
+-        src/crypto/verushash/verus_hash.cpp
+-        src/crypto/verushash/verus_clhash_portable.cpp
+-        src/crypto/verushash/verus_clhash.cpp
+-        src/crypto/verushash/sha512.cpp
+-        src/crypto/verushash/sha256.cpp
+-        src/crypto/verushash/sha1.cpp
+-        src/crypto/verushash/ripemd160.cpp
+-        src/crypto/verushash/hmac_sha512.cpp
+-        src/crypto/verushash/hmac_sha256.cpp
+-        src/crypto/verushash/equihash.cpp
+-        src/crypto/verushash/chacha20.cpp
+-        src/crypto/verushash/haraka_portable.c
+-        src/crypto/verushash/haraka.c
+-    )
+-else()
+-    remove_definitions(/DXMRIG_ALGO_VERUSHASH)
+-endif()
++if (WITH_VERUSHASH)
++    add_definitions(/DXMRIG_ALGO_VERUSHASH)
++
++    list(APPEND HEADERS_CRYPTO
++        src/crypto/verushash/verus_hash.h
++        src/crypto/verushash/verus_clhash.h
++        src/crypto/verushash/VerusHash_xmrig.h
++        src/crypto/verushash/sse2neon.h
++        src/crypto/verushash/sha512.h
++        src/crypto/verushash/sha256.h
++        src/crypto/verushash/sha1.h
++        src/crypto/verushash/ripemd160.h
++        src/crypto/verushash/hmac_sha512.h
++        src/crypto/verushash/hmac_sha256.h
++        src/crypto/verushash/haraka_portable.h
++        src/crypto/verushash/haraka.h
++        src/crypto/verushash/equihash.h
++        src/crypto/verushash/common.h
++        src/crypto/verushash/chacha20.h
++        src/crypto/verushash/compat/sse2neon.h
++        src/crypto/verushash/equihash.tcc
++    )
++
++    list(APPEND SOURCES_CRYPTO
++        src/crypto/verushash/verus_hash.cpp
++        src/crypto/verushash/VerusHash_xmrig.cpp
++        src/crypto/verushash/verus_clhash_portable.cpp
++        src/crypto/verushash/verus_clhash.cpp
++        src/crypto/verushash/sha512.cpp
++        src/crypto/verushash/sha256.cpp
++        src/crypto/verushash/sha1.cpp
++        src/crypto/verushash/ripemd160.cpp
++        src/crypto/verushash/hmac_sha512.cpp
++        src/crypto/verushash/hmac_sha256.cpp
++        src/crypto/verushash/equihash.cpp
++        src/crypto/verushash/chacha20.cpp
++        src/crypto/verushash/haraka_portable.c
++        src/crypto/verushash/haraka.c
++    )
++else()
++    remove_definitions(/DXMRIG_ALGO_VERUSHASH)
++endif()
+```
+
+```diff
+--- a/src/crypto/cn/CnHash.cpp   (upstream Slashx124/xmrig-test)
++++ b/src/crypto/cn/CnHash.cpp   (this tree)
+@@
+-#ifdef XMRIG_ALGO_ARGON2
+-#   include "crypto/argon2/Hash.h"
+-#endif
+-
+-#ifdef XMRIG_ALGO_ASTROBWT
+-#   include "crypto/astrobwt/AstroBWT.h"
+-#endif
++#ifdef XMRIG_ALGO_ARGON2
++#   include "crypto/argon2/Hash.h"
++#endif
++
++#ifdef XMRIG_ALGO_VERUSHASH
++#   include "crypto/verushash/VerusHash_xmrig.h"
++#endif
++
++#ifdef XMRIG_ALGO_ASTROBWT
++#   include "crypto/astrobwt/AstroBWT.h"
++#endif
+@@
+-# ifdef XMRIG_ALGO_GHOSTRIDER
+- ADD_FN(Algorithm::CN_GR_0);
+- ADD_FN(Algorithm::CN_GR_1);
+- ADD_FN(Algorithm::CN_GR_2);
+- ADD_FN(Algorithm::CN_GR_3);
+- ADD_FN(Algorithm::CN_GR_4);
+- ADD_FN(Algorithm::CN_GR_5);
+-# endif
+-
+-# ifdef XMRIG_ALGO_ASTROBWT
+- m_map[Algorithm::ASTROBWT_DERO_3] = new cn_hash_fun_array{};
+- m_map[Algorithm::ASTROBWT_DERO_3]->data[AV_SINGLE][Assembly::NONE] = astrobwt::single_hash;
+- m_map[Algorithm::ASTROBWT_DERO_3]->data[AV_SINGLE_SOFT][Assembly::NONE] = astrobwt::single_hash;
+-# endif
++# ifdef XMRIG_ALGO_GHOSTRIDER
++ ADD_FN(Algorithm::CN_GR_0);
++ ADD_FN(Algorithm::CN_GR_1);
++ ADD_FN(Algorithm::CN_GR_2);
++ ADD_FN(Algorithm::CN_GR_3);
++ ADD_FN(Algorithm::CN_GR_4);
++ ADD_FN(Algorithm::CN_GR_5);
++# endif
++
++# ifdef XMRIG_ALGO_VERUSHASH
++ m_map[Algorithm::VERUSHASH] = new cn_hash_fun_array{};
++ m_map[Algorithm::VERUSHASH]->data[AV_SINGLE][Assembly::NONE]      = verushash::single_hash<Algorithm::VERUSHASH>;
++ m_map[Algorithm::VERUSHASH]->data[AV_SINGLE_SOFT][Assembly::NONE] = verushash::single_hash<Algorithm::VERUSHASH>;
++# endif
++
++# ifdef XMRIG_ALGO_ASTROBWT
++ m_map[Algorithm::ASTROBWT_DERO_3] = new cn_hash_fun_array{};
++ m_map[Algorithm::ASTROBWT_DERO_3]->data[AV_SINGLE][Assembly::NONE] = astrobwt::single_hash;
++ m_map[Algorithm::ASTROBWT_DERO_3]->data[AV_SINGLE_SOFT][Assembly::NONE] = astrobwt::single_hash;
++# endif
+```
+
+```diff
+--- a/src/xmrig.cpp   (upstream Slashx124/xmrig-test)
++++ b/src/xmrig.cpp   (this tree)
+@@
+-#include "App.h"
+-#include "base/kernel/Entry.h"
+-#include "base/kernel/Process.h"
++#include "App.h"
++#include "base/kernel/Entry.h"
++#include "base/kernel/Process.h"
++
++#ifdef XMRIG_ALGO_VERUSHASH
++#   include "crypto/verushash/verus_hash.h"
++#endif
+@@
+ int main(int argc, char **argv)
+ {
+     using namespace xmrig;
++#ifdef XMRIG_ALGO_VERUSHASH
++    // Optional CLI self-test: computes a VerusHash v2 of a fixed buffer and exits.
++    for (int i = 1; i < argc; ++i) {
++        if (strcmp(argv[i], "--verushash-self-test") == 0) {
++            static const char kTestInput[] =
++                "Test1234Test1234Test1234Test1234"
++                "Test1234Test1234Test1234Test1234"
++                "Test1234Test1234Test1234Test1234";
++
++            unsigned char hash[32] = { 0 };
++            verus_hash_v2(hash, kTestInput, sizeof(kTestInput) - 1);
++
++            printf("VerusHash v2 self-test input: \"%s\"\n", kTestInput);
++            printf("VerusHash v2 self-test hash : ");
++            for (size_t j = 0; j < sizeof(hash); ++j) {
++                printf("%02x", static_cast<unsigned int>(hash[j]));
++            }
++            printf("\n");
++
++            return 0;
++        }
++    }
++#endif
+@@
+     Process process(argc, argv);
+```
+
+```diff
+--- a/src/crypto/verushash/verus_clhash.h   (this tree before MSVC fix)
++++ b/src/crypto/verushash/verus_clhash.h   (this tree after MSVC fix)
+@@
+-#else
+-#ifdef _MSC_VER
+-#include <intrin.h>
+-#else
+-#include <cpuid.h>
+-#endif
+-#include <x86intrin.h>
+-#endif // !WIN32
++#else
++#ifdef _MSC_VER
++#include <intrin.h>
++#include <immintrin.h>
++#else
++#include <cpuid.h>
++#include <x86intrin.h>
++#endif
++#endif // x86/x64
++
++#if defined(_MSC_VER)
++// GCC-compatible CPUID helpers used by the Verus reference code.
++#ifndef bit_PCLMUL
++#define bit_PCLMUL (1U << 1)
++#endif
++#ifndef bit_AES
++#define bit_AES    (1U << 25)
++#endif
++#ifndef bit_AVX
++#define bit_AVX    (1U << 28)
++#endif
++
++static inline int __get_cpuid(unsigned int leaf, unsigned int *eax, unsigned int *ebx, unsigned int *ecx, unsigned int *edx)
++{
++    int regs[4];
++    __cpuid(regs, static_cast<int>(leaf));
++    *eax = static_cast<unsigned int>(regs[0]);
++    *ebx = static_cast<unsigned int>(regs[1]);
++    *ecx = static_cast<unsigned int>(regs[2]);
++    *edx = static_cast<unsigned int>(regs[3]);
++    return 1;
++}
++#endif
+```
+
