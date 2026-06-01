@@ -19,17 +19,22 @@ permissions:
 jobs:
   linux-arm64-phone:
     name: Linux arm64 (Userland phone)
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev
+      - name: Install dependencies (cross aarch64)
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            libssl-dev:arm64
 
       - name: Build (DERO + Verus CPU)
         env:
-          JOBS: 2
+          CROSS_AARCH64: 1
         run: bash scripts/android/build_userland.sh
 
       - name: Package
