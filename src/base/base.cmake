@@ -246,7 +246,7 @@ else()
 endif()
 
 
-if (WITH_KAWPOW OR WITH_GHOSTRIDER)
+if (WITH_KAWPOW OR WITH_GHOSTRIDER OR WITH_VERUSHASH)
     list(APPEND HEADERS_BASE
         src/base/net/stratum/AutoClient.h
         src/base/net/stratum/EthStratumClient.h

@@ -180,7 +180,7 @@ void xmrig::CpuConfig::generate()
     count += xmrig::generate<Algorithm::ARGON2>(m_threads, m_limit);
     count += xmrig::generate<Algorithm::GHOSTRIDER>(m_threads, m_limit);
 #ifdef XMRIG_ALGO_VERUSHASH
-    count += xmrig::generate<Algorithm::VERUSHASH>(m_threads, m_limit);
+    count += xmrig::generate<Algorithm::VERUSHASH_FAMILY>(m_threads, m_limit);
 #endif
 
 #ifdef XMRIG_ALGO_ASTROBWT

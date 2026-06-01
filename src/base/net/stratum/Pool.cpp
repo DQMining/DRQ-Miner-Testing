@@ -31,7 +31,7 @@
 #include "base/kernel/Platform.h"
 #include "base/net/stratum/Client.h"
 
-#if defined XMRIG_ALGO_KAWPOW || defined XMRIG_ALGO_GHOSTRIDER
+#if defined XMRIG_ALGO_KAWPOW || defined XMRIG_ALGO_GHOSTRIDER || defined XMRIG_ALGO_VERUSHASH
 #   include "base/net/stratum/AutoClient.h"
 #   include "base/net/stratum/EthStratumClient.h"
 #endif

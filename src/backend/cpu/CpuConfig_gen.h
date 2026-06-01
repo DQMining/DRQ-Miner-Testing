@@ -152,7 +152,7 @@ size_t inline generate<Algorithm::GHOSTRIDER>(Threads<CpuThreads>& threads, uint
 
 #ifdef XMRIG_ALGO_VERUSHASH
 template<>
-size_t inline generate<Algorithm::VERUSHASH>(Threads<CpuThreads>& threads, uint32_t limit)
+size_t inline generate<Algorithm::VERUSHASH_FAMILY>(Threads<CpuThreads>& threads, uint32_t limit)
 {
     return generate(Algorithm::kVERUSHASH, threads, Algorithm::VERUSHASH, limit);
 }
