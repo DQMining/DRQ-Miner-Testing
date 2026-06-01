@@ -37,19 +37,6 @@ if (WITH_VERUSHASH)
         src/crypto/verushash/cuda/VerusCudaBridge.cpp
     )
 
-    if (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
-        if (NOT XMRIG_ARM)
-            # All Verus TUs must share SSSE3+AVX2 (verus_hash.h inlines _mm_shuffle_epi8).
-            set(_verus_x86_flags "-mssse3 -mavx2 -O3")
-            set_source_files_properties(
-                src/crypto/verushash/verus_clhash.cpp
-                src/crypto/verushash/verus_clhash_portable.cpp
-                src/crypto/verushash/verus_hash.cpp
-                src/crypto/verushash/VerusHash_xmrig.cpp
-                PROPERTIES COMPILE_FLAGS "${_verus_x86_flags}"
-            )
-        endif()
-    endif()
 
     if (NOT DEFINED XMRIG_BUILD_TESTS)
         set(XMRIG_BUILD_TESTS ON)
@@ -99,7 +86,7 @@ if (WITH_VERUSHASH)
                 src/crypto/verushash/verus_hash.cpp
                 src/crypto/verushash/verus_clhash.cpp
                 src/crypto/verushash/verus_clhash_portable.cpp
-                PROPERTIES COMPILE_FLAGS "-mssse3 -mavx2 -O3"
+                PROPERTIES COMPILE_FLAGS "-mssse3 -mavx2 -mpclmul -maes -O3"
             )
         endif()
     endif()

@@ -16,6 +16,7 @@ jobs:
   linux-arm64-phone:
     name: Linux arm64 (Userland phone)
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +24,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential cmake libssl-dev
 
       - name: Build (DERO + Verus CPU)
+        env:
+          JOBS: 2
         run: bash scripts/android/build_userland.sh
 
       - name: Package

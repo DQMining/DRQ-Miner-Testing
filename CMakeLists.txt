@@ -351,22 +351,6 @@ if (WITH_VERUSHASH)
             src/crypto/verushash/haraka.c
             PROPERTIES COMPILE_OPTIONS "${_XMRIG_VERUS_MSVC_OPTS}"
         )
-    elseif (CMAKE_CXX_COMPILER_ID MATCHES GNU|Clang|AppleClang)
-        if (NOT XMRIG_ARM)
-            set(_XMRIG_VERUS_GNU_FLAGS "-mssse3;-mavx2;-O3")
-            set_source_files_properties(
-                src/xmrig.cpp
-                src/backend/cpu/CpuWorker.cpp
-                src/crypto/verushash/VerusHash_xmrig.cpp
-                src/crypto/verushash/verus_hash.cpp
-                src/crypto/verushash/verus_clhash.cpp
-                src/crypto/verushash/verus_clhash_portable.cpp
-                src/crypto/verushash/cuda/VerusCudaBridge.cpp
-                src/crypto/verushash/haraka_portable.c
-                src/crypto/verushash/haraka.c
-                PROPERTIES COMPILE_OPTIONS "${_XMRIG_VERUS_GNU_FLAGS}"
-            )
-        endif()
     endif()
 endif()
 
@@ -402,6 +386,12 @@ if (WITH_DEBUG_LOG)
 endif()
 
 add_executable(${CMAKE_PROJECT_NAME} ${HEADERS} ${SOURCES} ${SOURCES_OS} ${HEADERS_CRYPTO} ${SOURCES_CRYPTO} ${SOURCES_SYSLOG} ${TLS_SOURCES} ${XMRIG_ASM_SOURCES})
+# Verus inlines SSSE3/AVX2/PCLMUL across many TUs (CpuWorker, JobResults, OpenCL runners, etc.).
+if (WITH_VERUSHASH AND NOT XMRIG_ARM)
+    if (CMAKE_CXX_COMPILER_ID MATCHES GNU|Clang|AppleClang)
+        target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -mssse3 -mavx2 -mpclmul -maes)
+    endif()
+endif()
 # nvcc host pass may ignore MSVC_RUNTIME_LIBRARY; pin /MD to match the rest of the link (GhostRider, hwloc, CXX).
 if (MSVC AND XMRIG_HAVE_CUDA_VERUS)
     target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE
