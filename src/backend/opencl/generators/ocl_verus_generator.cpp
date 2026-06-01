@@ -18,8 +18,7 @@ bool ocl_verus_generator(const OclDevice &device, const Algorithm &algorithm, Oc
     }
 
     const uint32_t intensity = OclVerusHashRunner::verusIntensityForDevice(device);
-    // Full ctor: KawPow slim builds disable the 4-arg OclThread constructor.
-    threads.add(OclThread(device.index(), intensity, 128, 0, 2, 1, 8));
+    threads.add(OclThread(device.index(), intensity, false));
 
     return true;
 }

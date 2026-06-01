@@ -61,6 +61,19 @@ public:
     }
 #   endif
 
+#   ifdef XMRIG_ALGO_VERUSHASH
+    OclThread(uint32_t index, uint32_t intensity, bool /*verusDefaults*/) :
+        m_threads(1, -1),
+        m_index(index),
+        m_memChunk(2),
+        m_stridedIndex(0),
+        m_unrollFactor(8),
+        m_worksize(128)
+    {
+        setIntensity(intensity);
+    }
+#   endif
+
 #   ifdef XMRIG_ALGO_KAWPOW
     OclThread(uint32_t index, uint32_t intensity, uint32_t worksize, uint32_t threads) :
         m_fields(8),
