@@ -27,6 +27,12 @@ jobs:
       - name: Install dependencies (cross aarch64)
         run: |
           sudo dpkg --add-architecture arm64
+          # GitHub mirror lists lack arm64 on security.ubuntu.com; use ports for arm64 libs.
+          sudo tee /etc/apt/sources.list.d/ubuntu-ports-arm64.list >/dev/null <<'EOF'
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse
+          EOF
           sudo apt-get update
           sudo apt-get install -y build-essential cmake \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
