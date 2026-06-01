@@ -37,7 +37,9 @@ jobs:
           mkdir -p release-assets
           cd out/build/linux-arm64-phone-Release
           chmod +x drqminer
-          tar czf ../../../release-assets/drqminer-linux-arm64-phone.tar.gz drqminer verushash.cl
+          cp -f "${GITHUB_WORKSPACE}/src/backend/opencl/cl/verus/verushash.cl" . 2>/dev/null || true
+          tar czf ../../../release-assets/drqminer-linux-arm64-phone.tar.gz drqminer verushash.cl 2>/dev/null \
+            || tar czf ../../../release-assets/drqminer-linux-arm64-phone.tar.gz drqminer
           sha256sum ../../../release-assets/drqminer-linux-arm64-phone.tar.gz > ../../../release-assets/drqminer-linux-arm64-phone.tar.gz.sha256
 
       - uses: actions/upload-artifact@v4
