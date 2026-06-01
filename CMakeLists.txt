@@ -341,6 +341,7 @@ if (WITH_VERUSHASH)
         )
         # Must be one quoted argument: unquoted ${list} is parsed as extra PROPERTIES pairs.
         set_source_files_properties(
+            src/xmrig.cpp
             src/backend/cpu/CpuWorker.cpp
             src/crypto/verushash/VerusHash_xmrig.cpp
             src/crypto/verushash/verus_hash.cpp
@@ -350,6 +351,22 @@ if (WITH_VERUSHASH)
             src/crypto/verushash/haraka.c
             PROPERTIES COMPILE_OPTIONS "${_XMRIG_VERUS_MSVC_OPTS}"
         )
+    elseif (CMAKE_CXX_COMPILER_ID MATCHES GNU|Clang|AppleClang)
+        if (NOT XMRIG_ARM)
+            set(_XMRIG_VERUS_GNU_FLAGS "-mssse3;-mavx2;-O3")
+            set_source_files_properties(
+                src/xmrig.cpp
+                src/backend/cpu/CpuWorker.cpp
+                src/crypto/verushash/VerusHash_xmrig.cpp
+                src/crypto/verushash/verus_hash.cpp
+                src/crypto/verushash/verus_clhash.cpp
+                src/crypto/verushash/verus_clhash_portable.cpp
+                src/crypto/verushash/cuda/VerusCudaBridge.cpp
+                src/crypto/verushash/haraka_portable.c
+                src/crypto/verushash/haraka.c
+                PROPERTIES COMPILE_OPTIONS "${_XMRIG_VERUS_GNU_FLAGS}"
+            )
+        endif()
     endif()
 endif()
 
