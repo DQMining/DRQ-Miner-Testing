@@ -29,3 +29,4 @@ test_vectors/*.exe
 *.exe
 !/scripts/**/*.exe
 lib/astrospsa/*.a
+!lib/astrospsa/libastroSPSA_linux_aarch64_clang_18_armv8-a+crypto.a

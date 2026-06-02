@@ -1,14 +1,14 @@
 # Userland — download and mine (public repo)
 
 Repo: **https://github.com/DQMining/DRQ-Miner-Testing** (public)  
-Latest phone build: **v1.0.7** (TNN-class ARM path: AstroSPSA + NEON branch compute)
+Latest phone build: **v1.0.8** (TNN NEON + AstroSPSA — use after CI green)
 
 ## Download
 
 ```bash
 cd ~
 wget -O drqminer-linux-arm64-phone.tar.gz \
-  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.7/drqminer-linux-arm64-phone.tar.gz
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.8/drqminer-linux-arm64-phone.tar.gz
 tar xzf drqminer-linux-arm64-phone.tar.gz
 chmod +x drqminer
 ./drqminer -V

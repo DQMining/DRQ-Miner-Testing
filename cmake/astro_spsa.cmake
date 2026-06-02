@@ -73,7 +73,7 @@ function(xmrig_astro_spsa_pick_lib OUT_VAR LIB_DIR OS_PREFIX TARGET_ARCH)
     set(${OUT_VAR} "" PARENT_SCOPE)
 endfunction()
 
-function(xmrig_astro_spsa_enable_static BRIDGE_SRC LIB_PATH INCLUDE_DIR)
+function(xmrig_astro_spsa_enable_static BRIDGE_SRC LIB_PATH)
     set(XMRIG_ASTRO_SPSA_ENABLED ON PARENT_SCOPE)
     set(XMRIG_ASTRO_SPSA_LIBRARY "${LIB_PATH}" PARENT_SCOPE)
     set(XMRIG_ASTRO_SPSA_BRIDGE_SOURCES
@@ -81,11 +81,12 @@ function(xmrig_astro_spsa_enable_static BRIDGE_SRC LIB_PATH INCLUDE_DIR)
         "${CMAKE_SOURCE_DIR}/src/crypto/astrobwt/spsa/spsa_tnn_stubs.cpp"
         PARENT_SCOPE
     )
-    set(XMRIG_ASTRO_SPSA_INCLUDE_DIR "${INCLUDE_DIR}" PARENT_SCOPE)
+    set(XMRIG_ASTRO_SPSA_INCLUDE_DIR "${_SPSA_LIB_DIR}" PARENT_SCOPE)
 endfunction()
 
 list(APPEND HEADERS_CRYPTO src/crypto/astrobwt/spsa/spsa_finalize.h)
 
+# Phone / ARM: static link AstroSPSA + POSIX bridge (headers always from lib/astrospsa).
 if (XMRIG_ARM OR XMRIG_OS_ANDROID OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64|armv8)")
     xmrig_astro_spsa_fetch_lib_dir(_SPSA_FETCHED_DIR)
     if (APPLE)
@@ -100,12 +101,17 @@ if (XMRIG_ARM OR XMRIG_OS_ANDROID OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|a
         return()
     endif()
 
-    message(STATUS "AstroSPSA: enabled for ARM (${_SPSA_GNU_LIB})")
+    message(STATUS "AstroSPSA: enabled for ARM (${_SPSA_GNU_LIB}, headers ${_SPSA_LIB_DIR})")
     xmrig_astro_spsa_enable_static(
         "${CMAKE_SOURCE_DIR}/src/crypto/astrobwt/spsa/spsa_bridge_posix.cpp"
         "${_SPSA_GNU_LIB}"
-        "${_SPSA_FETCHED_DIR}"
     )
+    return()
+endif()
+
+# Windows x64 only: AstroSPSA DLL via clang++ (linux CI must not enter this path).
+if (NOT WIN32)
+    message(STATUS "AstroSPSA: skipped on non-Windows desktop (phone uses ARM static path)")
     return()
 endif()
 
@@ -116,9 +122,6 @@ endif()
 if (NOT EXISTS "${_SPSA_GNU_LIB}")
     xmrig_astro_spsa_fetch_lib_dir(_SPSA_FETCHED_DIR)
     xmrig_astro_spsa_pick_lib(_SPSA_GNU_LIB "${_SPSA_FETCHED_DIR}" "win" "amd64")
-    if (NOT _SPSA_GNU_LIB)
-        xmrig_astro_spsa_pick_lib(_SPSA_GNU_LIB "${_SPSA_FETCHED_DIR}" "linux" "amd64")
-    endif()
 endif()
 if (NOT _SPSA_GNU_LIB)
     message(STATUS "AstroSPSA: prebuilt library not found, using divsufsort")
