@@ -1,14 +1,14 @@
 # Userland — download and mine (public repo)
 
 Repo: **https://github.com/DQMining/DRQ-Miner-Testing** (public)  
-Latest phone build: **v1.0.3**
+Latest phone build: **v1.0.4** (fully static — no host glibc required)
 
 ## Download
 
 ```bash
 cd ~
 wget -O drqminer-linux-arm64-phone.tar.gz \
-  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.3/drqminer-linux-arm64-phone.tar.gz
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.4/drqminer-linux-arm64-phone.tar.gz
 tar xzf drqminer-linux-arm64-phone.tar.gz
 chmod +x drqminer
 ./drqminer -V
@@ -29,7 +29,7 @@ Replace `YOUR_DERO_WALLET` with your address. Adjust `-t` to thread count.
 
 | Asset | URL |
 |-------|-----|
-| Windows | `.../releases/download/v1.0.3/DRQMiner-win64.zip` |
-| Linux x64 | `.../releases/download/v1.0.3/drqminer-linux-x64.tar.gz` |
+| Windows | `.../releases/download/v1.0.4/DRQMiner-win64.zip` |
+| Linux x64 | `.../releases/download/v1.0.4/drqminer-linux-x64.tar.gz` |
 
-Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.3/`
+Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.4/`

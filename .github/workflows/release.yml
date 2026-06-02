@@ -39,6 +39,11 @@ jobs:
           OPENSSL_AARCH64_PREFIX: ${{ github.workspace }}/.ci/openssl-aarch64
         run: bash scripts/android/build_userland.sh
 
+      - name: Verify static binary (no host glibc)
+        run: |
+          file out/build/linux-arm64-phone-Release/drqminer
+          ldd out/build/linux-arm64-phone-Release/drqminer 2>&1 | grep -q "not a dynamic executable"
+
       - name: Package
         run: |
           mkdir -p release-assets

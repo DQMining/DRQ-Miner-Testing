@@ -35,6 +35,7 @@ CMAKE_ARGS=(
   -DWITH_TLS=ON
   -DWITH_HWLOC=OFF
   -DXMRIG_BUILD_TESTS=OFF
+  -DBUILD_STATIC=ON
 )
 
 if [ -n "${CROSS_AARCH64:-}" ]; then
@@ -56,6 +57,13 @@ fi
 
 cmake "${ROOT}" "${CMAKE_ARGS[@]}"
 cmake --build . -j"${JOBS}"
+
+if command -v ldd >/dev/null 2>&1 && ldd "${BUILD_DIR}/drqminer" 2>&1 | grep -q "not a dynamic executable"; then
+  echo "OK: drqminer is fully static (no host glibc required)"
+elif command -v ldd >/dev/null 2>&1; then
+  echo "WARNING: drqminer is not fully static — Userland may need newer glibc:" >&2
+  ldd "${BUILD_DIR}/drqminer" >&2 || true
+fi
 
 cp -f "${ROOT}/src/backend/opencl/cl/verus/verushash.cl" "${BUILD_DIR}/" 2>/dev/null || true
 
