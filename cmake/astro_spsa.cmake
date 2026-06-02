@@ -1,5 +1,7 @@
 set(XMRIG_ASTRO_SPSA_ENABLED OFF)
 set(XMRIG_ASTRO_SPSA_LIBRARY "")
+set(XMRIG_ASTRO_SPSA_BRIDGE_SOURCES "")
+set(XMRIG_ASTRO_SPSA_INCLUDE_DIR "")
 
 if (NOT WITH_ASTROBWT)
     return()
@@ -11,19 +13,115 @@ if (NOT WITH_ASTRO_SPSA)
     return()
 endif()
 
-# AstroSPSA prebuild is x86_64 Windows (DLL) only; ARM/phone uses divsufsort (correct, slower).
+set(_SPSA_LIB_DIR "${CMAKE_SOURCE_DIR}/lib/astrospsa")
+set(_SPSA_FETCH_TAG "8938667bfa3253b52c622daf575fc11674d7067b")
+
+function(xmrig_astro_spsa_fetch_lib_dir OUT_VAR)
+    if (EXISTS "${_SPSA_LIB_DIR}/spsa.hpp")
+        file(GLOB _local_libs "${_SPSA_LIB_DIR}/libastroSPSA_*.a")
+        if (_local_libs)
+            set(${OUT_VAR} "${_SPSA_LIB_DIR}" PARENT_SCOPE)
+            return()
+        endif()
+    endif()
+
+    include(FetchContent)
+    FetchContent_Declare(
+        xmrig_astrospsa
+        GIT_REPOSITORY https://gitlab.com/Tritonn204/astro-spsa.git
+        GIT_TAG        ${_SPSA_FETCH_TAG}
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(xmrig_astrospsa)
+    set(${OUT_VAR} "${xmrig_astrospsa_SOURCE_DIR}" PARENT_SCOPE)
+endfunction()
+
+function(xmrig_astro_spsa_pick_lib OUT_VAR LIB_DIR OS_PREFIX TARGET_ARCH)
+    set(_suffixes
+        "_clang_20_armv8-a+crypto.a"
+        "_clang_19_armv8-a+crypto.a"
+        "_clang_18_armv8-a+crypto.a"
+        "_clang_15_armv8-a+crypto.a"
+        "_clang_14_armv8-a+crypto.a"
+        "_clang_20_armv8-a+aes.a"
+        "_clang_19_armv8-a+aes.a"
+        "_clang_18_armv8-a+aes.a"
+        "_clang_20_x86-64-v4.a"
+        "_clang_19_x86-64-v4.a"
+        "_clang_18_x86-64-v4.a"
+        "_clang_18_znver4.a"
+        "_clang_18_znver3.a"
+        "_clang_18_x86-64-v3.a"
+        "_clang_18_x86-64-v2.a"
+        ".a"
+    )
+
+    foreach(_suffix IN LISTS _suffixes)
+        set(_candidate "${LIB_DIR}/libastroSPSA_${OS_PREFIX}_${TARGET_ARCH}${_suffix}")
+        if (EXISTS "${_candidate}")
+            set(${OUT_VAR} "${_candidate}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+
+    set(_fallback_gnu "${LIB_DIR}/libastroSPSA_gnu.a")
+    if (EXISTS "${_fallback_gnu}")
+        set(${OUT_VAR} "${_fallback_gnu}" PARENT_SCOPE)
+        return()
+    endif()
+
+    set(${OUT_VAR} "" PARENT_SCOPE)
+endfunction()
+
+function(xmrig_astro_spsa_enable_static BRIDGE_SRC LIB_PATH INCLUDE_DIR)
+    set(XMRIG_ASTRO_SPSA_ENABLED ON PARENT_SCOPE)
+    set(XMRIG_ASTRO_SPSA_LIBRARY "${LIB_PATH}" PARENT_SCOPE)
+    set(XMRIG_ASTRO_SPSA_BRIDGE_SOURCES
+        "${BRIDGE_SRC}"
+        "${CMAKE_SOURCE_DIR}/src/crypto/astrobwt/spsa/spsa_tnn_stubs.cpp"
+        PARENT_SCOPE
+    )
+    set(XMRIG_ASTRO_SPSA_INCLUDE_DIR "${INCLUDE_DIR}" PARENT_SCOPE)
+endfunction()
+
+list(APPEND HEADERS_CRYPTO src/crypto/astrobwt/spsa/spsa_finalize.h)
+
 if (XMRIG_ARM OR XMRIG_OS_ANDROID OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64|armv8)")
-    message(STATUS "AstroSPSA: skipped on ARM/Android (DERO uses divsufsort CPU path)")
+    xmrig_astro_spsa_fetch_lib_dir(_SPSA_FETCHED_DIR)
+    if (APPLE)
+        set(_SPSA_OS_PREFIX "macos")
+    else()
+        set(_SPSA_OS_PREFIX "linux")
+    endif()
+    xmrig_astro_spsa_pick_lib(_SPSA_GNU_LIB "${_SPSA_FETCHED_DIR}" "${_SPSA_OS_PREFIX}" "aarch64")
+
+    if (NOT _SPSA_GNU_LIB)
+        message(STATUS "AstroSPSA: aarch64 prebuilt library not found, using divsufsort")
+        return()
+    endif()
+
+    message(STATUS "AstroSPSA: enabled for ARM (${_SPSA_GNU_LIB})")
+    xmrig_astro_spsa_enable_static(
+        "${CMAKE_SOURCE_DIR}/src/crypto/astrobwt/spsa/spsa_bridge_posix.cpp"
+        "${_SPSA_GNU_LIB}"
+        "${_SPSA_FETCHED_DIR}"
+    )
     return()
 endif()
 
-set(_SPSA_LIB_DIR "${CMAKE_SOURCE_DIR}/lib/astrospsa")
 set(_SPSA_GNU_LIB "${_SPSA_LIB_DIR}/libastroSPSA_gnu.a")
 if (NOT EXISTS "${_SPSA_GNU_LIB}")
     set(_SPSA_GNU_LIB "${_SPSA_LIB_DIR}/libastroSPSA_win_amd64_clang_18_x86-64-v4.a")
 endif()
 if (NOT EXISTS "${_SPSA_GNU_LIB}")
-    message(STATUS "AstroSPSA: prebuilt library not found in ${_SPSA_LIB_DIR}, using divsufsort")
+    xmrig_astro_spsa_fetch_lib_dir(_SPSA_FETCHED_DIR)
+    xmrig_astro_spsa_pick_lib(_SPSA_GNU_LIB "${_SPSA_FETCHED_DIR}" "win" "amd64")
+    if (NOT _SPSA_GNU_LIB)
+        xmrig_astro_spsa_pick_lib(_SPSA_GNU_LIB "${_SPSA_FETCHED_DIR}" "linux" "amd64")
+    endif()
+endif()
+if (NOT _SPSA_GNU_LIB)
+    message(STATUS "AstroSPSA: prebuilt library not found, using divsufsort")
     return()
 endif()
 
@@ -96,9 +194,6 @@ add_custom_command(
 )
 
 add_custom_target(xmrig_astro_spsa DEPENDS "${_SPSA_DLL}" "${_SPSA_IMPLIB}")
-
-# spsa_finalize.cpp is always linked from cmake/astrobwt.cmake (stubs when DLL absent).
-list(APPEND HEADERS_CRYPTO src/crypto/astrobwt/spsa/spsa_finalize.h)
 
 set(XMRIG_ASTRO_SPSA_LIBRARY "${_SPSA_IMPLIB}")
 set(XMRIG_ASTRO_SPSA_DLL "${_SPSA_DLL}")

@@ -28,7 +28,7 @@ CMAKE_ARGS=(
   -DWITH_CN_FEMTO=OFF
   -DWITH_ARGON2=OFF
   -DWITH_ASTROBWT=ON
-  -DWITH_ASTRO_SPSA=OFF
+  -DWITH_ASTRO_SPSA=ON
   -DWITH_VERUSHASH=ON
   -DWITH_OPENCL=OFF
   -DWITH_HTTP=ON
@@ -44,6 +44,8 @@ if [ -n "${CROSS_AARCH64:-}" ]; then
     -DCMAKE_SYSTEM_PROCESSOR=aarch64
     -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
     -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
+    -DCMAKE_C_FLAGS="-march=armv8-a+crypto -flax-vector-conversions"
+    -DCMAKE_CXX_FLAGS="-march=armv8-a+crypto -flax-vector-conversions"
   )
   if [ -n "${OPENSSL_AARCH64_PREFIX:-}" ]; then
     CMAKE_ARGS+=(

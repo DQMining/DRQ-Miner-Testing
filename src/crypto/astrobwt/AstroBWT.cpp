@@ -55,6 +55,14 @@ bool astrobwt_dero_v3(const void* input_data, uint32_t input_size, void* scratch
 {
     auto* scratch = reinterpret_cast<ScratchData*>(static_cast<uint8_t*>(scratchpad) + 64);
 
+#   if defined(__aarch64__) && defined(XMRIG_ASTRO_AARCH64_ENABLED)
+    if (spsa::available()) {
+        if (astrobwt_dero_v3_aarch64(input_data, input_size, scratch, output_hash)) {
+            return true;
+        }
+    }
+#   endif
+
 #   if defined(XMRIG_WOLF_ENABLED)
     if (wolf::available()) {
         return wolf::astrobwt_dero_v3_wolf(input_data, input_size, scratch, output_hash);

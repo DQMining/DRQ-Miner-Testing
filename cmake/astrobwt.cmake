@@ -30,6 +30,38 @@ if (WITH_ASTROBWT)
         src/crypto/astrobwt/spsa/spsa_finalize.cpp
     )
 
+    if (XMRIG_ASTRO_SPSA_BRIDGE_SOURCES)
+        list(APPEND SOURCES_CRYPTO ${XMRIG_ASTRO_SPSA_BRIDGE_SOURCES})
+        if (XMRIG_ASTRO_SPSA_INCLUDE_DIR)
+            include_directories(BEFORE "${XMRIG_ASTRO_SPSA_INCLUDE_DIR}")
+        endif()
+        set_source_files_properties(${XMRIG_ASTRO_SPSA_BRIDGE_SOURCES} PROPERTIES
+            COMPILE_DEFINITIONS "USE_ASTRO_SPSA"
+        )
+        add_definitions(-DXMRIG_ASTROBWT_USE_SPSA)
+    endif()
+
+    if (XMRIG_ARM AND XMRIG_ASTRO_SPSA_ENABLED)
+        set(XMRIG_ASTRO_AARCH64_ENABLED ON)
+        add_definitions(-DXMRIG_ASTRO_AARCH64_ENABLED)
+        include_directories(BEFORE "${CMAKE_SOURCE_DIR}/lib/tnn_compat")
+        list(APPEND SOURCES_CRYPTO
+            src/crypto/astrobwt/aarch64/astro_aarch64.cpp
+            src/crypto/astrobwt/aarch64/astrobwt_aarch64.cpp
+        )
+        set_source_files_properties(
+            src/crypto/astrobwt/aarch64/astro_aarch64.cpp
+            src/crypto/astrobwt/aarch64/astrobwt_aarch64.cpp
+            PROPERTIES COMPILE_DEFINITIONS "USE_ASTRO_SPSA"
+        )
+        if (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
+            set_source_files_properties(
+                src/crypto/astrobwt/aarch64/astro_aarch64.cpp
+                PROPERTIES COMPILE_FLAGS "-O3 -flax-vector-conversions"
+            )
+        endif()
+    endif()
+
     if (CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang)
         if (XMRIG_ARM_CRYPTO)
             set_source_files_properties(
@@ -103,8 +135,19 @@ if (WITH_ASTROBWT)
         src/crypto/astrobwt/trsort.c
         src/crypto/astrobwt/divsufsort_utils.c
     )
+    if (XMRIG_ASTRO_SPSA_BRIDGE_SOURCES)
+        target_sources(test_astrobwt PRIVATE ${XMRIG_ASTRO_SPSA_BRIDGE_SOURCES})
+        if (XMRIG_ASTRO_SPSA_INCLUDE_DIR)
+            target_include_directories(test_astrobwt BEFORE PRIVATE "${XMRIG_ASTRO_SPSA_INCLUDE_DIR}")
+        endif()
+        set_source_files_properties(${XMRIG_ASTRO_SPSA_BRIDGE_SOURCES} PROPERTIES
+            COMPILE_DEFINITIONS "USE_ASTRO_SPSA"
+        )
+    endif()
     if (XMRIG_ASTRO_SPSA_LIBRARY)
-        add_dependencies(test_astrobwt xmrig_astro_spsa)
+        if (TARGET xmrig_astro_spsa)
+            add_dependencies(test_astrobwt xmrig_astro_spsa)
+        endif()
         target_link_libraries(test_astrobwt PRIVATE "${XMRIG_ASTRO_SPSA_LIBRARY}")
     endif()
     target_include_directories(test_astrobwt PRIVATE src)

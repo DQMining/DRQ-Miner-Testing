@@ -43,6 +43,10 @@ struct ScratchData {
 
 bool astrobwt_dero_v3(const void* input_data, uint32_t input_size, void* scratchpad, uint8_t* output_hash);
 
+#if defined(__aarch64__) && defined(XMRIG_ASTRO_AARCH64_ENABLED)
+bool astrobwt_dero_v3_aarch64(const void* input_data, uint32_t input_size, ScratchData* scratch, uint8_t* output_hash);
+#endif
+
 void init();
 
 template<Algorithm::Id ALGO>
