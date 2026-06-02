@@ -1,14 +1,14 @@
 # Userland — download and mine (public repo)
 
 Repo: **https://github.com/DQMining/DRQ-Miner-Testing** (public)  
-Latest phone build: **v1.0.5** (Wolf + fast suffix-array on ARM)
+Latest phone build: **v1.0.6** (reverts v1.0.5 perf regression; use this, not v1.0.5)
 
 ## Download
 
 ```bash
 cd ~
 wget -O drqminer-linux-arm64-phone.tar.gz \
-  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.4/drqminer-linux-arm64-phone.tar.gz
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.6/drqminer-linux-arm64-phone.tar.gz
 tar xzf drqminer-linux-arm64-phone.tar.gz
 chmod +x drqminer
 ./drqminer -V

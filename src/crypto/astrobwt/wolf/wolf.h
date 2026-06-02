@@ -10,7 +10,7 @@ struct ScratchData;
 
 namespace wolf {
 
-#if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX2__)) || defined(XMRIG_ARM)
+#if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX2__))
 #   define XMRIG_WOLF_ENABLED 1
 #endif
 
