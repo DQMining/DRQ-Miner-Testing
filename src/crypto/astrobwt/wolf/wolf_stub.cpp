@@ -4,7 +4,7 @@ namespace xmrig {
 namespace astrobwt {
 namespace wolf {
 
-#if !defined(__AVX2__) && !(defined(_MSC_VER) && defined(__AVX2__))
+#if !defined(XMRIG_WOLF_ENABLED)
 
 void init() {}
 

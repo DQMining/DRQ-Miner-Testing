@@ -1,7 +1,7 @@
 # Userland — download and mine (public repo)
 
 Repo: **https://github.com/DQMining/DRQ-Miner-Testing** (public)  
-Latest phone build: **v1.0.4** (fully static — no host glibc required)
+Latest phone build: **v1.0.5** (Wolf + fast suffix-array on ARM)
 
 ## Download
 

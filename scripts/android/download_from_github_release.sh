@@ -18,7 +18,7 @@ set -euo pipefail
 
 GITHUB_USER="${GITHUB_USER:-DQMining}"
 GITHUB_REPO="${GITHUB_REPO:-DRQ-Miner-Testing}"
-RELEASE_TAG="${RELEASE_TAG:-v1.0.4}"
+RELEASE_TAG="${RELEASE_TAG:-v1.0.5}"
 ASSET_NAME="${ASSET_NAME:-drqminer-linux-arm64-phone.tar.gz}"
 
 REPO_SLUG="${GITHUB_USER}/${GITHUB_REPO}"

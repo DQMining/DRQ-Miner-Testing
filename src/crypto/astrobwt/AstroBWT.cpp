@@ -42,7 +42,7 @@ void init()
 {
     std::call_once(s_init_once, []() {
         sha256_init_hw();
-#       if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX2__))
+#       if defined(XMRIG_WOLF_ENABLED)
         wolf::init();
 #       endif
         spsa::init();
@@ -55,7 +55,7 @@ bool astrobwt_dero_v3(const void* input_data, uint32_t input_size, void* scratch
 {
     auto* scratch = reinterpret_cast<ScratchData*>(static_cast<uint8_t*>(scratchpad) + 64);
 
-#   if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX2__))
+#   if defined(XMRIG_WOLF_ENABLED)
     if (wolf::available()) {
         return wolf::astrobwt_dero_v3_wolf(input_data, input_size, scratch, output_hash);
     }

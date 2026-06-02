@@ -6,7 +6,6 @@
 #include "crypto/astrobwt/hash_utils.h"
 #include "crypto/astrobwt/sha256_utils.h"
 #include "crypto/astrobwt/spsa/spsa_finalize.h"
-#include "crypto/astrobwt/wolf/wolf_simd.h"
 #include "crypto/astrobwt/wolf/wolf_tables.h"
 #include "crypto/astrobwt/wolf/wolf_worker.h"
 
@@ -14,12 +13,20 @@
 #include <cstring>
 
 #if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX2__))
+#   include "crypto/astrobwt/wolf/wolf_simd.h"
+#elif defined(XMRIG_WOLF_ENABLED)
+#   include "crypto/astrobwt/wolf/wolf_scalar.h"
+#endif
+
+#if defined(XMRIG_WOLF_ENABLED)
 
 namespace xmrig {
 namespace astrobwt {
 namespace wolf {
 
 namespace {
+
+#if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX2__))
 
 inline void wolf_permute_inplace(uint8_t* s, uint16_t op, uint8_t pos1, uint8_t pos2)
 {
@@ -32,6 +39,15 @@ inline void wolf_permute_inplace(uint8_t* s, uint16_t op, uint8_t pos1, uint8_t 
     data = _mm256_blendv_epi8(old, data, genMask_avx2(pos2 - pos1));
     _mm256_storeu_si256(reinterpret_cast<__m256i*>(&s[pos1]), data);
 }
+
+#else
+
+inline void wolf_permute_inplace(uint8_t* s, uint16_t op, uint8_t pos1, uint8_t pos2)
+{
+    wolf_permute_inplace_scalar(s, op, pos1, pos2);
+}
+
+#endif
 
 inline uint8_t normA(uint8_t pos1, uint8_t pos2, const uint8_t* s)
 {
@@ -252,4 +268,4 @@ bool astrobwt_dero_v3_wolf(const void* input_data, uint32_t input_size, ScratchD
 } // namespace astrobwt
 } // namespace xmrig
 
-#endif // __AVX2__
+#endif // XMRIG_WOLF_ENABLED
