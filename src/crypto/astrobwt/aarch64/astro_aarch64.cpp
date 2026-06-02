@@ -5,6 +5,8 @@
 
 #include <fnv1a.h>
 #include <highwayhash/sip_hash.h>
+#include <lookup.h>
+#include <tnn_ops.h>
 #include <xxhash64.h>
 
 #include <algorithm>
