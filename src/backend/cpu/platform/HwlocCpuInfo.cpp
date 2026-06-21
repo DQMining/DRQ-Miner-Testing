@@ -382,6 +382,13 @@ void xmrig::HwlocCpuInfo::processTopLevelCache(hwloc_obj_t cache, const Algorith
     }
 #   endif
 
+#   ifdef XMRIG_ALGO_NM
+    if (family == Algorithm::NM) {
+        intensity = 0;
+        cacheHashes = std::min(cacheHashes, cores.size());
+    }
+#   endif
+
     if (cacheHashes >= PUs) {
         for (hwloc_obj_t core : cores) {
             const std::vector<hwloc_obj_t> units = findByType(core, HWLOC_OBJ_PU);

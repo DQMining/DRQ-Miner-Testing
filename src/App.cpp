@@ -31,17 +31,21 @@
 #include "App.h"
 #include "backend/cpu/Cpu.h"
 #include "base/io/Console.h"
+#include "base/kernel/Process.h"
 #include "base/io/log/Log.h"
 #include "base/io/log/Tags.h"
 #include "base/io/Signals.h"
 #include "base/kernel/Platform.h"
 #include "core/config/Config.h"
 #include "core/Controller.h"
+#include "branding/DrqBanner.h"
+#include "branding/DrqGraphic.h"
 #include "Summary.h"
 #include "version.h"
 
 
-xmrig::App::App(Process *process)
+xmrig::App::App(Process *process) :
+    m_process(process)
 {
     m_controller = std::make_shared<Controller>(process);
 }
@@ -56,7 +60,7 @@ xmrig::App::~App()
 int xmrig::App::exec()
 {
     if (!m_controller->isReady()) {
-        LOG_EMERG("no valid configuration found, try https://xmrig.com/wizard");
+        LOG_EMERG("no valid configuration found — run \"%s --setup\" or use -o/-u on the command line", APP_ID);
 
         return 2;
     }
@@ -77,7 +81,14 @@ int xmrig::App::exec()
         m_console = std::make_shared<Console>(this);
     }
 
+    DrqBanner::print();
     Summary::print(m_controller.get());
+
+    if (m_controller->config()->isGraphic()) {
+        DrqGraphic::start();
+    }
+
+    m_controller->initUpdateCheck(m_process->arguments().hasArg("--apply-update"));
 
 #   ifdef XMRIG_OS_WIN
     /* Help diagnose instant 0xC0000005: ensure banner reaches the console before Miner/CUDA init. */
@@ -134,6 +145,8 @@ void xmrig::App::onSignal(int signum)
 
 void xmrig::App::close()
 {
+    DrqGraphic::stop();
+
     m_signals.reset();
     m_console.reset();
 

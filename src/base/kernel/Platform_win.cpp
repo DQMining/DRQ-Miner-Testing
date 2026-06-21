@@ -83,6 +83,26 @@ bool xmrig::Platform::hasKeepalive()
 }
 
 
+bool xmrig::Platform::enableConsoleColors()
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    DWORD mode = 0;
+    if (!GetConsoleMode(hOut, &mode)) {
+        return false;
+    }
+
+    if (mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING) {
+        return true;
+    }
+
+    return SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING) != 0;
+}
+
+
 #ifndef XMRIG_FEATURE_HWLOC
 bool xmrig::Platform::setThreadAffinity(uint64_t cpu_id)
 {

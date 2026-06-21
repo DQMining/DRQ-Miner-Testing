@@ -1,5 +1,7 @@
 /build
 /out/
+/out/build/**/RELEASE/
+/out/build/**/DRQMiner-win64.zip
 /.vs/
 /dist/
 /xmrig-deps/
@@ -21,6 +23,8 @@ scripts/deps
 /derohe
 /benchmark
 /deps
+.env.operator
+tools/drq-proxy/.env.operator
 test_vectors/*.exe
 *.pdb
 *.ilk

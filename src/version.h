@@ -11,15 +11,17 @@
 #define APP_ID        "drqminer"
 #define APP_NAME      "DRQ Miner"
 #define APP_DESC      "DRQ Miner (xmrig-based, VerusHash CPU)"
-#define APP_VERSION   "6.25.0"
+#define APP_VERSION   "0.0.1"
 #define APP_DOMAIN    "dqmining.com"
 #define APP_SITE      "www.dqmining.com"
 #define APP_COPYRIGHT "Copyright (C) 2016-2025 xmrig.com / DRQ Miner"
 #define APP_KIND      "miner"
+#define APP_BETA_FORMAT   "DRQ Miner Beta V 1.0.0.MM.DD.YYYY"
+#define APP_STABLE_FORMAT "DRQ Miner V 0.0.1.MM.DD.YYYY"
 
-#define APP_VER_MAJOR  6
-#define APP_VER_MINOR  25
-#define APP_VER_PATCH  0
+#define APP_VER_MAJOR  0
+#define APP_VER_MINOR  0
+#define APP_VER_PATCH  1
 
 #ifdef _MSC_VER
 #   if (_MSC_VER >= 1950)

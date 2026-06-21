@@ -21,6 +21,7 @@
 
 
 #include "base/kernel/Base.h"
+#include "core/update/UpdateCheck.h"
 
 
 #include <memory>
@@ -51,9 +52,12 @@ public:
     Network *network() const;
     void execCommand(char command) const;
 
+    void initUpdateCheck(bool applyUpdate);
+
 private:
     std::shared_ptr<Miner> m_miner;
     std::shared_ptr<Network> m_network;
+    std::unique_ptr<UpdateCheck> m_updateCheck;
 
 #   ifdef XMRIG_FEATURE_API
     std::shared_ptr<HwApi> m_hwApi;

@@ -39,6 +39,7 @@ public:
         Default,
         Usage,
         Version,
+        Setup,
         Topo,
         Platforms
     };

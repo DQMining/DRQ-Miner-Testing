@@ -29,6 +29,8 @@
 #include "base/net/http/Fetch.h"
 #include "base/net/http/HttpData.h"
 #include "base/net/stratum/Client.h"
+#include "base/net/stratum/SubmitResult.h"
+#include "branding/DrqGraphic.h"
 #include "net/JobResult.h"
 #include "base/tools/Cvt.h"
 
@@ -310,11 +312,29 @@ void xmrig::SelfSelectClient::onHttpData(const HttpData &data)
     }
 
     const int64_t id = Json::getInt64(doc, "id", -1);
+
+    const rapidjson::Value &errorObj = Json::getObject(doc, "error");
+    const char *errorMsg = nullptr;
+    if (errorObj.IsObject()) {
+        errorMsg = Json::getString(errorObj, "message");
+    }
+
+    auto submitIt = m_results.find(id);
+    if (submitIt != m_results.end()) {
+        submitIt->second.done();
+        m_listener->onResultAccepted(this, submitIt->second, errorMsg);
+        m_results.erase(submitIt);
+        if (!errorMsg) {
+            DrqGraphic::notifyBlockSubmitSuccess();
+        }
+        return;
+    }
+
     if (id > 0 && m_sequence - id != 1) {
         return;
     }
 
-    if (!parseResponse(id, doc["result"], Json::getObject(doc, "error"))) {
+    if (!parseResponse(id, doc["result"], errorObj)) {
         retry();
     }
 }

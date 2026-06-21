@@ -72,7 +72,7 @@ static inline const std::string &usage()
     u += "  -r, --retries=N               number of times to retry before switch to backup server (default: 5)\n";
     u += "  -R, --retry-pause=N           time to pause between retries (default: 5)\n";
     u += "      --user-agent              set custom user-agent string for pool\n";
-    u += "      --donate-level=N          donate level, default 0%%\n";
+    u += "      --donate-level=N          donate level percent, supports decimals (e.g. 0.5 or 0.01)\n";
     u += "      --donate-over-proxy=N     control donate over xmrig-proxy feature\n";
 
     u += "\nCPU backend:\n";
@@ -170,8 +170,10 @@ static inline const std::string &usage()
 
     u += "  -c, --config=FILE             load a JSON-format configuration file\n";
     u += "  -B, --background              run the miner in the background\n";
+    u += "  -g, --graphic                 ASCII mining animation (TTY / SSH / Windows console)\n";
     u += "  -V, --version                 output version information and exit\n";
     u += "  -h, --help                    display this help and exit\n";
+    u += "      --setup                   interactive setup: write config.json and start-miner script\n";
     u += "      --dry-run                 test configuration and exit\n";
 
 #   ifdef XMRIG_FEATURE_HWLOC

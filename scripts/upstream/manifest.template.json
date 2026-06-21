@@ -1,0 +1,20 @@
+{
+  "channel": "beta",
+  "version": "0.0.1",
+  "published_at": "2026-06-02T00:00:00Z",
+  "notes_url": "https://github.com/DQMining/DRQ-Miner-Testing/releases",
+  "artifacts": {
+    "win64": {
+      "url": "https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v0.0.1/DRQMiner-win64.zip",
+      "sha256": "REPLACE_WITH_REAL_SHA256"
+    },
+    "linux-x64": {
+      "url": "https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v0.0.1/drqminer-linux-x64.tar.gz",
+      "sha256": "REPLACE_WITH_REAL_SHA256"
+    },
+    "linux-arm64-phone": {
+      "url": "https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v0.0.1/drqminer-linux-arm64-phone.tar.gz",
+      "sha256": "REPLACE_WITH_REAL_SHA256"
+    }
+  }
+}

@@ -19,6 +19,7 @@
 #include "App.h"
 #include "base/kernel/Entry.h"
 #include "base/kernel/Process.h"
+#include "branding/DrqSetup.h"
 
 #ifdef XMRIG_ALGO_VERUSHASH
 #   include "crypto/verushash/verus_hash.h"
@@ -58,6 +59,11 @@ int main(int argc, char **argv)
     const Entry::Id entry = Entry::get(process);
     if (entry) {
         return Entry::exec(process, entry);
+    }
+
+    const int setupRc = DrqSetup::run(process, DrqSetup::Auto);
+    if (setupRc != 0) {
+        return setupRc;
     }
 
     App app(&process);

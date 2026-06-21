@@ -256,3 +256,27 @@ extern "C" sha3_return_t sha3_HashBuffer( unsigned bitSize, enum SHA3_FLAGS flag
     memcpy(out, h, outBytes);
     return SHA3_RETURN_OK;
 }
+
+
+extern "C" sha3_return_t sha3_256t(const void *in, unsigned inBytes, void *out32)
+{
+    uint8_t buf[32];
+
+    sha3_return_t err = sha3_HashBuffer(256, SHA3_FLAGS_NONE, in, inBytes, buf, sizeof(buf));
+    if (err != SHA3_RETURN_OK) {
+        return err;
+    }
+
+    err = sha3_HashBuffer(256, SHA3_FLAGS_NONE, buf, sizeof(buf), buf, sizeof(buf));
+    if (err != SHA3_RETURN_OK) {
+        return err;
+    }
+
+    return sha3_HashBuffer(256, SHA3_FLAGS_NONE, buf, sizeof(buf), out32, 32);
+}
+
+
+extern "C" sha3_return_t sha3_256t_header80(const void *header80, void *out32)
+{
+    return sha3_256t(header80, 80, out32);
+}

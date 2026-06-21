@@ -20,6 +20,8 @@
 #include "backend/cpu/Cpu.h"
 #include "core/config/Config.h"
 #include "core/Miner.h"
+#include "core/update/UpdateCheck.h"
+#include "core/update/UpdateConfig.h"
 #include "crypto/common/VirtualMemory.h"
 #include "net/Network.h"
 
@@ -72,10 +74,28 @@ void xmrig::Controller::start()
 }
 
 
+void xmrig::Controller::initUpdateCheck(bool applyUpdate)
+{
+#   ifdef XMRIG_FEATURE_HTTP
+    UpdateConfig cfg = config()->update();
+    cfg.loadCli(applyUpdate);
+    if (!cfg.enabled()) {
+        return;
+    }
+
+    m_updateCheck = std::make_unique<UpdateCheck>(this, cfg);
+    m_updateCheck->start();
+#   else
+    (void)applyUpdate;
+#   endif
+}
+
+
 void xmrig::Controller::stop()
 {
     Base::stop();
 
+    m_updateCheck.reset();
     m_network.reset();
 
     m_miner->stop();

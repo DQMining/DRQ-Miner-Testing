@@ -111,6 +111,11 @@ const char *Algorithm::kASTROBWT        = "astrobwt";
 const char *Algorithm::kASTROBWT_DERO_3 = "astrobwt/v3";
 #endif
 
+#ifdef XMRIG_ALGO_NM
+const char *Algorithm::kNM              = "nm";
+const char *Algorithm::kNM_1            = "nm/1";
+#endif
+
 
 #define ALGO_NAME(ALGO)         { Algorithm::ALGO, Algorithm::k##ALGO }
 #define ALGO_ALIAS(ALGO, NAME)  { NAME, Algorithm::ALGO }
@@ -180,6 +185,10 @@ static const std::map<uint32_t, const char *> kAlgorithmNames = {
 
 #   ifdef XMRIG_ALGO_ASTROBWT
     ALGO_NAME(ASTROBWT_DERO_3),
+#   endif
+
+#   ifdef XMRIG_ALGO_NM
+    ALGO_NAME(NM_1),
 #   endif
 };
 
@@ -307,7 +316,16 @@ static const std::map<const char *, Algorithm::Id, aliasCompare> kAlgorithmAlias
 #   ifdef XMRIG_ALGO_ASTROBWT
     ALGO_ALIAS_AUTO(ASTROBWT_DERO_3), ALGO_ALIAS(ASTROBWT_DERO_3, "astrobwt/v3"),
                                       ALGO_ALIAS(ASTROBWT_DERO_3, "astrobwt/dero"),
+                                      ALGO_ALIAS(ASTROBWT_DERO_3, "astrobwtv3"),
+                                      ALGO_ALIAS(ASTROBWT_DERO_3, "astrobwtv3/dero"),
                                       ALGO_ALIAS(ASTROBWT_DERO_3, "astrobwt"),
+#   endif
+
+#   ifdef XMRIG_ALGO_NM
+    ALGO_ALIAS_AUTO(NM_1),          ALGO_ALIAS(NM_1, "neuromorph"),
+                                    ALGO_ALIAS(NM_1, "neuromorph/1"),
+                                    ALGO_ALIAS(NM_1, "cereblix"),
+                                    ALGO_ALIAS(NM_1, "nm"),
 #   endif
 };
 
@@ -415,6 +433,10 @@ std::vector<xmrig::Algorithm> xmrig::Algorithm::all(const std::function<bool(con
 
 #ifdef XMRIG_ALGO_ASTROBWT
         ASTROBWT_DERO_3,
+#endif
+
+#ifdef XMRIG_ALGO_NM
+        NM_1,
 #endif
     };
 

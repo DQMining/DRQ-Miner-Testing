@@ -11,6 +11,7 @@ on:
   push:
     tags:
       - "v*"
+      - "beta-*"
   workflow_dispatch:
 
 permissions:
@@ -108,17 +109,13 @@ jobs:
       - name: Build
         run: cmake --build out/build/x64-Release --config Release --target xmrig
 
-      - name: Package
+      - name: Package (RELEASE folder + dependency report)
         shell: pwsh
         run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/package_windows_release.ps1 `
+            -BuildDir out/build/x64-Release -Config Release
           New-Item -ItemType Directory -Force -Path release-assets | Out-Null
-          $dir = "out/build/x64-Release"
-          $files = @(
-            "$dir/DRQMiner-Release.exe",
-            "$dir/verushash.cl"
-          )
-          if (Test-Path "$dir/xmrig_astro_spsa.dll") { $files += "$dir/xmrig_astro_spsa.dll" }
-          Compress-Archive -Path $files -DestinationPath release-assets/DRQMiner-win64.zip -Force
+          Copy-Item -Force out/build/x64-Release/DRQMiner-win64.zip release-assets/DRQMiner-win64.zip
           $hash = (Get-FileHash release-assets/DRQMiner-win64.zip -Algorithm SHA256).Hash.ToLower()
           "$hash  DRQMiner-win64.zip" | Out-File release-assets/DRQMiner-win64.zip.sha256 -Encoding ascii
 
@@ -146,9 +143,44 @@ jobs:
       - name: List artifacts
         run: find dist -type f | sort
 
+      - name: Create branded asset aliases
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          cp dist/drqminer-linux-arm64-phone.tar.gz "dist/DRQ-Miner-${TAG}-linux-arm64-phone.tar.gz"
+          cp dist/drqminer-linux-arm64-phone.tar.gz.sha256 "dist/DRQ-Miner-${TAG}-linux-arm64-phone.tar.gz.sha256"
+          cp dist/drqminer-linux-x64.tar.gz "dist/DRQ-Miner-${TAG}-linux-x64.tar.gz"
+          cp dist/drqminer-linux-x64.tar.gz.sha256 "dist/DRQ-Miner-${TAG}-linux-x64.tar.gz.sha256"
+          cp dist/DRQMiner-win64.zip "dist/DRQ-Miner-${TAG}-win64.zip"
+          cp dist/DRQMiner-win64.zip.sha256 "dist/DRQ-Miner-${TAG}-win64.zip.sha256"
+
+      - name: Generate manifest.json
+        run: |
+          python3 scripts/upstream/generate_manifest.py \
+            --tag "${GITHUB_REF_NAME}" \
+            --dist dist \
+            --out dist/manifest.json
+          cat dist/manifest.json
+
+      - name: Build release notes body
+        run: |
+          cat > release_body.md <<'EOF'
+          ## DRQ Miner release
+
+          Discord: https://discord.gg/ZJwJune3
+
+          ## Auto-update
+          - `manifest.json` is attached to this release (canonical copy also mirrored at https://www.dqmining.com/releases/manifest.json when configured).
+          - Miner: set `"auto-update": true` in config or use `--apply-update` after a newer version is reported.
+
+          ## Known limitations
+          - Dev-fee proxy routes require operator-side wallet mapping.
+          - Some protocols may need DRQ Proxy adapters per algorithm.
+          EOF
+
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          body_path: release_body.md
           files: |
             dist/drqminer-linux-arm64-phone.tar.gz
             dist/drqminer-linux-arm64-phone.tar.gz.sha256
@@ -156,5 +188,12 @@ jobs:
             dist/drqminer-linux-x64.tar.gz.sha256
             dist/DRQMiner-win64.zip
             dist/DRQMiner-win64.zip.sha256
+            dist/DRQ-Miner-*-linux-arm64-phone.tar.gz
+            dist/DRQ-Miner-*-linux-arm64-phone.tar.gz.sha256
+            dist/DRQ-Miner-*-linux-x64.tar.gz
+            dist/DRQ-Miner-*-linux-x64.tar.gz.sha256
+            dist/DRQ-Miner-*-win64.zip
+            dist/DRQ-Miner-*-win64.zip.sha256
+            dist/manifest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

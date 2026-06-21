@@ -55,6 +55,11 @@
 #   include "crypto/astrobwt/AstroBWT.h"
 #endif
 
+#ifdef XMRIG_ALGO_NM
+#   include "crypto/nm/nm_fast.h"
+#   include "crypto/nm/NmShared.h"
+#endif
+
 
 namespace xmrig {
 
@@ -201,6 +206,10 @@ xmrig::CpuWorker<N>::CpuWorker(size_t id, const CpuLaunchData &data) :
     m_threads(data.threads),
     m_ctx()
 {
+#   ifdef XMRIG_ALGO_NM
+    m_nmHugePages = data.hugePages;
+#   endif
+
 #   ifdef XMRIG_ALGO_CN_HEAVY
     // cn-heavy optimization for Zen3 CPUs
     const auto arch = Cpu::info()->arch();
@@ -233,6 +242,13 @@ xmrig::CpuWorker<N>::~CpuWorker()
 {
 #   ifdef XMRIG_ALGO_RANDOMX
     RxVm::destroy(m_vm);
+#   endif
+
+#   ifdef XMRIG_ALGO_NM
+    if (m_nmInit) {
+        free(m_nmLane.prog);
+        free(m_nmLane.taken);
+    }
 #   endif
 
     CnCtx::release(m_ctx, N);
@@ -280,9 +296,59 @@ void xmrig::CpuWorker<N>::allocateRandomX_VM()
 #endif
 
 
+#ifdef XMRIG_ALGO_NM
+template<size_t N>
+void xmrig::CpuWorker<N>::allocateNm()
+{
+    if (!m_nmInit) {
+        m_nmLane.prog = static_cast<nm_instr *>(malloc(static_cast<size_t>(NM_PROG_MAX) * sizeof(nm_instr)));
+        m_nmLane.taken = static_cast<uint8_t *>(malloc(NM_PROG_MAX));
+        if (!m_nmLane.prog || !m_nmLane.taken) {
+            free(m_nmLane.prog);
+            free(m_nmLane.taken);
+            m_nmLane.prog = nullptr;
+            m_nmLane.taken = nullptr;
+            return;
+        }
+        nm_fast_lane_attach(&m_nmLane, m_memory->scratchpad());
+        m_nmInit = true;
+    }
+
+    const Job &job = m_job.currentJob();
+    const Buffer &seed = job.seed();
+    if (seed.size() != 32) {
+        return;
+    }
+
+    if (!m_nmSeed.empty() && m_nmSeed.size() == seed.size() && memcmp(m_nmSeed.data(), seed.data(), seed.size()) == 0) {
+        return;
+    }
+
+    m_nmEpoch = NmShared::epoch(seed.data(), node(), m_nmHugePages);
+    if (!m_nmEpoch) {
+        return;
+    }
+
+    static bool fillLogged = false;
+    if (!fillLogged) {
+        fillLogged = true;
+        LOG_INFO("nm scratch fill: %s", nm_fast_fill_name());
+    }
+
+    m_nmSeed = seed;
+}
+#endif
+
+
 template<size_t N>
 bool xmrig::CpuWorker<N>::selfTest()
 {
+#   ifdef XMRIG_ALGO_NM
+    if (m_algorithm.family() == Algorithm::NM) {
+        return N == 1;
+    }
+#   endif
+
 #   ifdef XMRIG_ALGO_RANDOMX
     if (m_algorithm.family() == Algorithm::RANDOM_X) {
         return N == 1;
@@ -869,6 +935,12 @@ void xmrig::CpuWorker<N>::start()
                     break;
 #               endif
 
+#               ifdef XMRIG_ALGO_NM
+                case Algorithm::NM:
+                    nm_fast_hash(m_nmEpoch, &m_nmLane, m_job.blob(), job.height(), m_hash);
+                    break;
+#               endif
+
                 default:
                     fn(job.algorithm())(m_job.blob(), job.size(), m_hash, m_ctx, job.height());
                     break;
@@ -881,6 +953,17 @@ void xmrig::CpuWorker<N>::start()
 
             if (valid) {
                 for (size_t i = 0; i < N; ++i) {
+#                   ifdef XMRIG_ALGO_NM
+                    if (job.algorithm().family() == Algorithm::NM) {
+                        if (memcmp(m_hash + (i * 32), job.target32(), 32) <= 0) {
+                            const uint64_t nmNonce = static_cast<uint64_t>(current_job_nonces[i]) |
+                                (static_cast<uint64_t>(readUnaligned(m_job.nonce(i) + 1)) << 32);
+                            JobResults::submit(JobResult(job, nmNonce, m_hash + (i * 32)));
+                        }
+                        continue;
+                    }
+#                   endif
+
                     const uint64_t value = readUnaligned(reinterpret_cast<const uint64_t *>(m_hash + (i * 32) + 24));
                     bool hit = false;
 
@@ -908,6 +991,12 @@ void xmrig::CpuWorker<N>::start()
                 }
                 m_count += N;
             }
+
+#           ifdef XMRIG_ALGO_NM
+            if (job.algorithm().family() == Algorithm::NM) {
+                continue;
+            }
+#           endif
 
             if (m_yield) {
                 std::this_thread::yield();
@@ -1085,6 +1174,12 @@ void xmrig::CpuWorker<N>::consumeJob()
 #   ifdef XMRIG_ALGO_RANDOMX
     if (m_job.currentJob().algorithm().family() == Algorithm::RANDOM_X) {
         allocateRandomX_VM();
+    }
+    else
+#   endif
+#   ifdef XMRIG_ALGO_NM
+    if (m_job.currentJob().algorithm().family() == Algorithm::NM) {
+        allocateNm();
     }
     else
 #   endif

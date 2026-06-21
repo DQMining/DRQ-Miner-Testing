@@ -125,14 +125,31 @@ public:
     inline const String &verusSolution() const          { return m_verusSolution; }
     inline const uint32_t *nonce() const                { return reinterpret_cast<const uint32_t*>(m_blob + nonceOffset()); }
     inline const uint8_t *blob() const                  { return m_blob; }
-    inline size_t nonceSize() const                     { return (algorithm().family() == Algorithm::KAWPOW) ? 8 : 4; }
+    inline size_t nonceSize() const                     {
+#       ifdef XMRIG_ALGO_NM
+        if (algorithm().family() == Algorithm::KAWPOW || algorithm().family() == Algorithm::NM) {
+#       else
+        if (algorithm().family() == Algorithm::KAWPOW) {
+#       endif
+            return 8;
+        }
+        return 4;
+    }
     inline size_t size() const                          { return m_size; }
     inline uint32_t *nonce()                            { return reinterpret_cast<uint32_t*>(m_blob + nonceOffset()); }
     inline uint32_t backend() const                     { return m_backend; }
     inline uint64_t diff() const                        { return m_diff; }
     inline uint64_t height() const                      { return m_height; }
-    inline uint64_t nonceMask() const                   { return isNicehash() ? 0xFFFFFFULL : (nonceSize() == sizeof(uint64_t) ? (static_cast<uint64_t>(-1LL) >> (extraNonce().size() * 4)) : 0xFFFFFFFFULL); }
+    inline uint64_t nonceMask() const                   {
+#       ifdef XMRIG_ALGO_NM
+        if (algorithm().family() == Algorithm::NM) {
+            return (isNicehash() && m_blob[nonceOffset() + 3] != 0) ? 0xFFFFFFULL : 0xFFFFFFFFULL;
+        }
+#       endif
+        return isNicehash() ? 0xFFFFFFULL : (nonceSize() == sizeof(uint64_t) ? (static_cast<uint64_t>(-1LL) >> (extraNonce().size() * 4)) : 0xFFFFFFFFULL);
+    }
     inline uint64_t target() const                      { return m_target; }
+    inline const uint8_t *target32() const              { return m_target32; }
     inline bool hasVerusTarget() const                  { return m_hasVerusTarget; }
     inline const uint8_t *verusTargetBytes() const      { return m_verusTarget; }
     inline const uint64_t *verusTargetWords() const     { return m_verusTarget64; }
@@ -215,6 +232,7 @@ private:
     uint64_t m_diff     = 0;
     uint64_t m_height   = 0;
     uint64_t m_target   = 0;
+    uint8_t m_target32[32]{ 0 };
     uint16_t m_verusSolutionSize = 0;
     uint8_t m_verusTarget[32]{ 0 };
     uint64_t m_verusTarget64[4]{ 0 };

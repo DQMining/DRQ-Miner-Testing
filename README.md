@@ -53,11 +53,30 @@ cmake --build out/build/x64-Release --config Release
 
 Same JSON and CLI model as XMRig. Example: `-a verushash` or coin `VRSC` with a Verus stratum URL.
 
-Default dev donation is **1%** to `pool.dqmining.com:5040` (override with `donate-level` or `src/donate.h`).
+Default dev donation is configurable via `donate-level` and now supports decimals down to **0.01%** (for example `0.5`).
+
+## Windows release packaging (clean Win10/11)
+
+After a Release build, the packaging script assembles a self-contained **`RELEASE/`** folder with all required DLLs, kernels, and audit reports:
+
+```powershell
+cmake --build out/build/x64-Release --config Release --target package-windows-release
+# or
+pwsh -File scripts/package_windows_release.ps1
+pwsh -File scripts/verify_windows_release.ps1
+```
+
+See [doc/WINDOWS_RELEASE_AUDIT.md](doc/WINDOWS_RELEASE_AUDIT.md) for the full dependency list, OpenSSL/CUDA notes, and clean-VM checklist.
 
 ## Publishing to GitHub
 
 See [doc/PUBLISHING.md](doc/PUBLISHING.md). Do not commit `config.json` with wallets or API keys.
+
+## Release Naming
+
+- Beta format: `DRQ Miner Beta V 1.0.0.MM.DD.YYYY`
+- Stable format: `DRQ Miner V 0.0.1.MM.DD.YYYY`
+- Discord release channel: https://discord.gg/ZJwJune3
 
 ## Upstream
 

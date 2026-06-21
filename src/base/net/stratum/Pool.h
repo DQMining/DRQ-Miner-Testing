@@ -150,6 +150,10 @@ private:
 
     void setKeepAlive(const rapidjson::Value &value);
 
+#   ifdef XMRIG_ALGO_ASTROBWT
+    void applyDeroPoolTransport();
+#   endif
+
     Algorithm m_algorithm;
     bool m_submitToOrigin           = false;
     Coin m_coin;

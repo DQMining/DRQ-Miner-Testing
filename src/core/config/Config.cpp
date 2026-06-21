@@ -23,6 +23,7 @@
 
 
 #include "core/config/Config.h"
+#include "core/update/UpdateConfig.h"
 #include "3rdparty/rapidjson/document.h"
 #include "backend/cpu/Cpu.h"
 #include "base/io/log/Log.h"
@@ -73,10 +74,13 @@ const char *Config::kHealthPrintTime    = "health-print-time";
 const char *Config::kDMI                = "dmi";
 #endif
 
+const char *Config::kGraphic              = "graphic";
+
 
 class ConfigPrivate
 {
 public:
+    bool graphic        = false;
     bool pauseOnBattery = false;
     CpuConfig cpu;
     uint32_t idleTime   = 0;
@@ -100,6 +104,8 @@ public:
 #   ifdef XMRIG_FEATURE_DMI
     bool dmi = true;
 #   endif
+
+    UpdateConfig update;
 
     void setIdleTime(const rapidjson::Value &value)
     {
@@ -191,6 +197,18 @@ bool xmrig::Config::isDMI() const
 #endif
 
 
+const xmrig::UpdateConfig &xmrig::Config::update() const
+{
+    return d_ptr->update;
+}
+
+
+bool xmrig::Config::isGraphic() const
+{
+    return d_ptr->graphic;
+}
+
+
 bool xmrig::Config::isShouldSave() const
 {
     if (!isAutoSave()) {
@@ -250,6 +268,9 @@ bool xmrig::Config::read(const IJsonReader &reader, const char *fileName)
     d_ptr->dmi = reader.getBool(kDMI, d_ptr->dmi);
 #   endif
 
+    d_ptr->update.load(reader);
+    d_ptr->graphic = reader.getBool(kGraphic, d_ptr->graphic);
+
     return true;
 }
 
@@ -270,6 +291,7 @@ void xmrig::Config::getJSON(rapidjson::Document &doc) const
     doc.AddMember(StringRef(kHttp),                     m_http.toJSON(doc), allocator);
     doc.AddMember(StringRef(kAutosave),                 isAutoSave(), allocator);
     doc.AddMember(StringRef(kBackground),               isBackground(), allocator);
+    doc.AddMember(StringRef(kGraphic),                  isGraphic(), allocator);
     doc.AddMember(StringRef(kColors),                   Log::isColors(), allocator);
     doc.AddMember(StringRef(kTitle),                    title().toJSON(), allocator);
 
@@ -312,4 +334,15 @@ void xmrig::Config::getJSON(rapidjson::Document &doc) const
     doc.AddMember(StringRef(kWatch),                    m_watch, allocator);
     doc.AddMember(StringRef(kPauseOnBattery),           isPauseOnBattery(), allocator);
     doc.AddMember(StringRef(kPauseOnActive),            (d_ptr->idleTime == 0U || d_ptr->idleTime == kIdleTime) ? Value(isPauseOnActive()) : Value(d_ptr->idleTime), allocator);
+
+    const char *autoUpdate = "notify";
+    if (d_ptr->update.mode() == UpdateConfig::Off) {
+        autoUpdate = "false";
+    }
+    else if (d_ptr->update.mode() == UpdateConfig::Install) {
+        autoUpdate = "install";
+    }
+    doc.AddMember(StringRef(UpdateConfig::kAutoUpdate), Value(autoUpdate, allocator), allocator);
+    doc.AddMember(StringRef(UpdateConfig::kCheckInterval), d_ptr->update.checkInterval(), allocator);
+    doc.AddMember(StringRef(UpdateConfig::kManifestUrl), d_ptr->update.manifestUrl().toJSON(), allocator);
 }

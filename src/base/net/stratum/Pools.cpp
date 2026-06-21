@@ -30,6 +30,8 @@
 #include "base/net/stratum/strategies/FailoverStrategy.h"
 #include "base/net/stratum/strategies/SinglePoolStrategy.h"
 #include "donate.h"
+ 
+#include <cmath>
 
 
 #ifdef XMRIG_FEATURE_BENCHMARK
@@ -70,10 +72,10 @@ bool xmrig::Pools::isEqual(const Pools &other) const
 }
 
 
-int xmrig::Pools::donateLevel() const
+double xmrig::Pools::donateLevel() const
 {
 #   ifdef XMRIG_FEATURE_BENCHMARK
-    return benchSize() || (m_benchmark && !m_benchmark->id().isEmpty()) ? 0 : m_donateLevel;
+    return benchSize() || (m_benchmark && !m_benchmark->id().isEmpty()) ? 0.0 : m_donateLevel;
 #   else
     return m_donateLevel;
 #   endif
@@ -158,7 +160,7 @@ void xmrig::Pools::load(const IJsonReader &reader)
         }
     }
 
-    setDonateLevel(reader.getInt(kDonateLevel, kDefaultDonateLevel));
+    setDonateLevel(reader.getDouble(kDonateLevel, kDefaultDonateLevel));
     setProxyDonate(reader.getInt(kDonateOverProxy, PROXY_DONATE_AUTO));
     setRetries(reader.getInt(kRetries));
     setRetryPause(reader.getInt(kRetryPause));
@@ -215,10 +217,11 @@ void xmrig::Pools::toJSON(rapidjson::Value &out, rapidjson::Document &doc) const
 }
 
 
-void xmrig::Pools::setDonateLevel(int level)
+void xmrig::Pools::setDonateLevel(double level)
 {
-    if (level >= kMinimumDonateLevel && level <= 99) {
-        m_donateLevel = level;
+    if (level >= kMinimumDonateLevel && level <= 99.0) {
+        // keep two decimals max to make 0.01% achievable and stable in JSON/UI
+        m_donateLevel = std::round(level * 100.0) / 100.0;
     }
 }
 

@@ -110,6 +110,30 @@ bool xmrig::Job::setSeedHash(const char *hash)
 
 bool xmrig::Job::setTarget(const char *target)
 {
+#   ifdef XMRIG_ALGO_NM
+    if (algorithm().family() == Algorithm::NM) {
+        if (!target || strlen(target) != sizeof(m_target32) * 2) {
+            return false;
+        }
+
+        const auto raw = Cvt::fromHex(target, sizeof(m_target32) * 2);
+        if (raw.size() != sizeof(m_target32)) {
+            return false;
+        }
+
+        memcpy(m_target32, raw.data(), sizeof(m_target32));
+
+        uint64_t hi = 0;
+        for (int i = 0; i < 8; ++i) {
+            hi = (hi << 8) | m_target32[i];
+        }
+        m_target = hi ? hi : 1;
+        m_diff   = toDiff(m_target);
+
+        return true;
+    }
+#   endif
+
     static auto parse = [](const char *target, size_t size, const Algorithm &algorithm) -> uint64_t {
         if (algorithm == Algorithm::RX_YADA) {
             return strtoull(target, nullptr, 16);
@@ -208,6 +232,11 @@ size_t xmrig::Job::nonceOffset() const
         }
         break;
 
+#   ifdef XMRIG_ALGO_NM
+    case Algorithm::NM:
+        return 116;
+#   endif
+
 #   ifdef XMRIG_ALGO_ASTROBWT
     case Algorithm::ASTROBWT:
         // DERO miniblock (48 B): 4-byte big-endian nonce at MINIBLOCK_SIZE-5 (derohe/TNN).
@@ -295,6 +324,7 @@ void xmrig::Job::copy(const Job &other)
     m_diff       = other.m_diff;
     m_height     = other.m_height;
     m_target     = other.m_target;
+    memcpy(m_target32, other.m_target32, sizeof(m_target32));
     m_index      = other.m_index;
     m_seed       = other.m_seed;
     m_extraNonce = other.m_extraNonce;
@@ -352,6 +382,7 @@ void xmrig::Job::move(Job &&other)
     m_diff       = other.m_diff;
     m_height     = other.m_height;
     m_target     = other.m_target;
+    memcpy(m_target32, other.m_target32, sizeof(m_target32));
     m_index      = other.m_index;
     m_seed       = std::move(other.m_seed);
     m_extraNonce = std::move(other.m_extraNonce);

@@ -1,0 +1,23 @@
+name: Upstream Watch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * *"
+
+jobs:
+  check-upstream:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check xmrig + RandomX upstream status
+        shell: pwsh
+        run: |
+          .\scripts\upstream\check_upstream.ps1
+
+      - name: Upload upstream status artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-status
+          path: out/upstream-status.txt

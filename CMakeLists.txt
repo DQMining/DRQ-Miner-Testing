@@ -20,6 +20,8 @@ option(WITH_KAWPOW          "Enable KawPow algorithms family" ON)
 option(WITH_GHOSTRIDER      "Enable GhostRider algorithm" ON)
 option(WITH_VERUSHASH        "Enable VERUSHASH algorithm" ON)
 option(WITH_ASTROBWT        "Enable AstroBWT algorithm" ON)
+option(WITH_BC3             "Enable BC3 SHA3-256t tests (Phase 2)" ON)
+option(WITH_NM              "Enable Neuromorph (nm/1) algorithm" ON)
 option(WITH_HTTP            "Enable HTTP protocol support (client/server)" ON)
 option(WITH_DEBUG_LOG       "Enable debug log output" OFF)
 option(WITH_TLS             "Enable OpenSSL support" ON)
@@ -74,6 +76,9 @@ set(HEADERS
     src/core/Controller.h
     src/core/Miner.h
     src/core/Taskbar.h
+    src/core/update/UpdateApply.h
+    src/core/update/UpdateCheck.h
+    src/core/update/UpdateConfig.h
     src/net/interfaces/IJobResultListener.h
     src/net/JobResult.h
     src/net/JobResults.h
@@ -123,6 +128,9 @@ set(SOURCES
     src/core/Controller.cpp
     src/core/Miner.cpp
     src/core/Taskbar.cpp
+    src/core/update/UpdateApply.cpp
+    src/core/update/UpdateCheck.cpp
+    src/core/update/UpdateConfig.cpp
     src/net/JobResults.cpp
     src/net/Network.cpp
     src/net/strategies/DonateStrategy.cpp
@@ -312,6 +320,12 @@ if (WITH_CUDA AND WITH_VERUSHASH)
 endif()
 
 include(cmake/astrobwt.cmake)
+include(cmake/bc3.cmake)
+if (WITH_NM AND (XMRIG_ARM OR XMRIG_RISCV))
+    message(STATUS "NM (nm/1): x86-only for now — disabled on ARM/RISC-V")
+    set(WITH_NM OFF CACHE BOOL "Enable Neuromorph (nm/1) algorithm" FORCE)
+endif()
+include(cmake/nm.cmake)
 include(cmake/OpenSSL.cmake)
 include(cmake/asm.cmake)
 
@@ -378,6 +392,7 @@ include(src/hw/api/api.cmake)
 include(src/hw/dmi/dmi.cmake)
 
 include_directories(src)
+include_directories(${CMAKE_SOURCE_DIR})
 include_directories(src/3rdparty)
 include_directories(${UV_INCLUDE_DIR})
 
@@ -507,4 +522,26 @@ endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES Clang AND CMAKE_BUILD_TYPE STREQUAL Release AND NOT CMAKE_GENERATOR STREQUAL Xcode)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_STRIP} "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>")
+endif()
+
+if (WIN32 AND MSVC)
+    set(_XMRIG_PACKAGE_PS1 "${CMAKE_SOURCE_DIR}/scripts/package_windows_release.ps1")
+    if (EXISTS "${_XMRIG_PACKAGE_PS1}")
+        add_custom_target(package-windows-release
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                -File "${_XMRIG_PACKAGE_PS1}"
+                -BuildDir "${CMAKE_BINARY_DIR}"
+                -Config Release
+            DEPENDS ${CMAKE_PROJECT_NAME}
+            COMMENT "Assemble RELEASE folder + DRQMiner-win64.zip"
+        )
+        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+            COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                -File "${_XMRIG_PACKAGE_PS1}"
+                -BuildDir "${CMAKE_BINARY_DIR}"
+                -Config $<CONFIG>
+                -Quiet
+            COMMENT "Package Windows RELEASE folder (Release config only runs full staging)"
+        )
+    endif()
 endif()

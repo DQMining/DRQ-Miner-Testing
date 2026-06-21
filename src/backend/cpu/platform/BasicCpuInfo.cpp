@@ -385,6 +385,12 @@ xmrig::CpuThreads xmrig::BasicCpuInfo::threads(const Algorithm &algorithm, uint3
     }
 #   endif
 
+#   ifdef XMRIG_ALGO_NM
+    if (f == Algorithm::NM) {
+        return std::max<size_t>(count / 2, 1);
+    }
+#   endif
+
     return CpuThreads(std::max<size_t>(count / 2, 1), 1);
 }
 

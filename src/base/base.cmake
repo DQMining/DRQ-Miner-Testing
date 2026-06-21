@@ -16,6 +16,9 @@ set(HEADERS_BASE
     src/base/io/log/FileLogWriter.h
     src/base/io/log/Log.h
     src/base/io/log/Tags.h
+    src/branding/DrqBanner.h
+    src/branding/DrqGraphic.h
+    src/branding/DrqSetup.h
     src/base/io/Signals.h
     src/base/io/Watcher.h
     src/base/kernel/Base.h
@@ -104,6 +107,10 @@ set(SOURCES_BASE
     src/base/io/log/FileLogWriter.cpp
     src/base/io/log/Log.cpp
     src/base/io/log/Tags.cpp
+    src/branding/DrqBanner.cpp
+    src/branding/DrqGraphic.cpp
+    src/branding/DrqGraphicTty.cpp
+    src/branding/DrqSetup.cpp
     src/base/io/Signals.cpp
     src/base/io/Watcher.cpp
     src/base/kernel/Base.cpp

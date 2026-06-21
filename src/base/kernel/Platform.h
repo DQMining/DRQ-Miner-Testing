@@ -51,8 +51,10 @@ public:
 
 #   ifdef XMRIG_OS_WIN
     static bool hasKeepalive();
+    static bool enableConsoleColors();
 #   else
     static constexpr bool hasKeepalive()            { return true; }
+    static constexpr bool enableConsoleColors()     { return true; }
 #   endif
 
     static bool isOnBatteryPower();

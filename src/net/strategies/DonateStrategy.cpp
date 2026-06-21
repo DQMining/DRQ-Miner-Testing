@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <cstdlib>
 #include <iterator>
 
 
@@ -50,13 +51,32 @@ static const uint16_t kDonatePort  = 5040;
 static const char *kDonateHostTls  = "pool.dqmining.com";
 static const uint16_t kDonatePortTls = 443;
 #endif
+static const char *kDonateProxyHostDefault = "www.dqmining.com";
+static const uint16_t kDonateProxyPortDefault = 3333;
+
+static inline uint16_t envPort(const char *name, uint16_t fallback)
+{
+    const char *v = std::getenv(name);
+    if (v == nullptr || *v == '\0') {
+        return fallback;
+    }
+
+    const long p = std::strtol(v, nullptr, 10);
+    return (p > 0 && p <= 65535) ? static_cast<uint16_t>(p) : fallback;
+}
+
+static inline const char *envHost(const char *name, const char *fallback)
+{
+    const char *v = std::getenv(name);
+    return (v != nullptr && *v != '\0') ? v : fallback;
+}
 
 } // namespace xmrig
 
 
 xmrig::DonateStrategy::DonateStrategy(Controller *controller, IStrategyListener *listener) :
-    m_donateTime(static_cast<uint64_t>(controller->config()->pools().donateLevel()) * 60 * 1000),
-    m_idleTime((100 - static_cast<uint64_t>(controller->config()->pools().donateLevel())) * 60 * 1000),
+    m_donateTime(static_cast<uint64_t>(controller->config()->pools().donateLevel() * 60.0 * 1000.0)),
+    m_idleTime(static_cast<uint64_t>((100.0 - controller->config()->pools().donateLevel()) * 60.0 * 1000.0)),
     m_controller(controller),
     m_listener(listener)
 {
@@ -66,23 +86,7 @@ xmrig::DonateStrategy::DonateStrategy(Controller *controller, IStrategyListener 
     keccak(reinterpret_cast<const uint8_t *>(user.data()), user.size(), hash);
     Cvt::toHex(m_userId, sizeof(m_userId), hash, 32);
 
-#   if defined XMRIG_ALGO_KAWPOW || defined XMRIG_ALGO_GHOSTRIDER || defined XMRIG_ALGO_VERUSHASH
-    constexpr Pool::Mode mode = Pool::MODE_AUTO_ETH;
-#   else
-    constexpr Pool::Mode mode = Pool::MODE_POOL;
-#   endif
-
-#   ifdef XMRIG_FEATURE_TLS
-    m_pools.emplace_back(kDonateHostTls, kDonatePortTls, m_userId, nullptr, nullptr, 0, true, true, mode);
-#   endif
-    m_pools.emplace_back(kDonateHost, kDonatePort, m_userId, nullptr, nullptr, 0, true, false, mode);
-
-    if (m_pools.size() > 1) {
-        m_strategy = new FailoverStrategy(m_pools, 10, 2, this, true);
-    }
-    else {
-        m_strategy = new SinglePoolStrategy(m_pools.front(), 10, 2, this, true);
-    }
+    rebuildStrategy(m_algorithm);
 
     m_timer = new Timer(this);
 
@@ -133,7 +137,12 @@ void xmrig::DonateStrategy::connect()
 
 void xmrig::DonateStrategy::setAlgo(const xmrig::Algorithm &algo)
 {
+    if (m_algorithm == algo) {
+        return;
+    }
+
     m_algorithm = algo;
+    rebuildStrategy(algo);
 
     m_strategy->setAlgo(algo);
 }
@@ -275,6 +284,78 @@ xmrig::IClient *xmrig::DonateStrategy::createProxy()
     proxy->setQuiet(true);
 
     return proxy;
+}
+
+
+xmrig::DonateStrategy::DonateRoute xmrig::DonateStrategy::resolveRoute(const Algorithm &algo) const
+{
+    DonateRoute route{};
+    route.host    = envHost("DRQ_DONATE_PROXY_HOST", kDonateProxyHostDefault);
+    route.port    = envPort("DRQ_DONATE_PROXY_PORT", kDonateProxyPortDefault);
+#   ifdef XMRIG_FEATURE_TLS
+    route.tlsPort = envPort("DRQ_DONATE_PROXY_TLS_PORT", kDonatePortTls);
+#   endif
+
+#   if defined(XMRIG_ALGO_ASTROBWT)
+    if (algo.id() == Algorithm::ASTROBWT_DERO_3) {
+        route.mode = Pool::MODE_DAEMON;
+        return route;
+    }
+#   endif
+
+#   if defined(XMRIG_ALGO_VERUSHASH)
+    if (algo.family() == Algorithm::VERUSHASH_FAMILY || algo.id() == Algorithm::VERUSHASH) {
+        route.mode = Pool::MODE_AUTO_ETH;
+        return route;
+    }
+#   endif
+
+#   if defined(XMRIG_ALGO_GHOSTRIDER)
+    if (algo.family() == Algorithm::GHOSTRIDER || algo.id() == Algorithm::GHOSTRIDER_RTM) {
+        route.mode = Pool::MODE_AUTO_ETH;
+        return route;
+    }
+#   endif
+
+#   ifdef XMRIG_ALGO_NM
+    if (algo.family() == Algorithm::NM || algo.id() == Algorithm::NM_1) {
+        route.mode = Pool::MODE_POOL;
+        return route;
+    }
+#   endif
+
+    if (algo.family() == Algorithm::RANDOM_X || algo.id() == Algorithm::RX_0) {
+        route.mode = Pool::MODE_POOL;
+        return route;
+    }
+
+    route.mode = Pool::MODE_POOL;
+    return route;
+}
+
+
+void xmrig::DonateStrategy::rebuildStrategy(const Algorithm &algo)
+{
+    const DonateRoute route = resolveRoute(algo);
+
+    m_pools.clear();
+#   ifdef XMRIG_FEATURE_TLS
+    m_pools.emplace_back(route.host, route.tlsPort, m_userId, nullptr, nullptr, 0, true, true, route.mode);
+#   endif
+    m_pools.emplace_back(route.host, route.port, m_userId, nullptr, nullptr, 0, true, false, route.mode);
+
+    if (m_strategy != nullptr) {
+        m_strategy->stop();
+        delete m_strategy;
+        m_strategy = nullptr;
+    }
+
+    if (m_pools.size() > 1) {
+        m_strategy = new FailoverStrategy(m_pools, 10, 2, this, true);
+    }
+    else {
+        m_strategy = new SinglePoolStrategy(m_pools.front(), 10, 2, this, true);
+    }
 }
 
 

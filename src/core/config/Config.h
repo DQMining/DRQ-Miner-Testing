@@ -39,6 +39,7 @@ class CudaDevice;
 class IThread;
 class OclConfig;
 class RxConfig;
+class UpdateConfig;
 
 
 class Config : public BaseConfig
@@ -64,6 +65,8 @@ public:
 #   ifdef XMRIG_FEATURE_DMI
     static const char *kDMI;
 #   endif
+
+    static const char *kGraphic;
 
     Config();
     ~Config() override;
@@ -102,6 +105,10 @@ public:
     bool isShouldSave() const;
     bool read(const IJsonReader &reader, const char *fileName) override;
     void getJSON(rapidjson::Document &doc) const override;
+
+    const UpdateConfig &update() const;
+
+    bool isGraphic() const;
 
 private:
     ConfigPrivate *d_ptr;

@@ -88,6 +88,9 @@ public:
         HugePagesJitKey      = 1057,
         RotationKey          = 1058,
         DaemonJobTimeoutKey  = 1059,
+        ApplyUpdateKey       = 1060,
+        GraphicKey           = 'g',
+        GraphicKeyAlt        = 'G',
 
         // xmrig common
         CPUPriorityKey       = 1021,

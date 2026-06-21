@@ -150,12 +150,44 @@ xmrig::Pool::Pool(const rapidjson::Value &object) :
         m_mode = MODE_DAEMON;
     }
 
-#   if defined(XMRIG_FEATURE_TLS) && defined(XMRIG_ALGO_ASTROBWT)
-    if (m_mode == MODE_POOL && isWSS() && m_algorithm.id() == Algorithm::ASTROBWT_DERO_3) {
-        m_mode = MODE_DAEMON;
+#   ifdef XMRIG_ALGO_ASTROBWT
+    applyDeroPoolTransport();
+#   endif
+}
+
+
+#   ifdef XMRIG_ALGO_ASTROBWT
+void xmrig::Pool::applyDeroPoolTransport()
+{
+    const bool deroTarget = (m_algorithm.id() == Algorithm::ASTROBWT_DERO_3) || (m_coin == Coin::DERO_HE);
+    if (!deroTarget || !m_url.isValid()) {
+        return;
+    }
+
+    const String &host = m_url.host();
+    const bool rabid    = host.contains("rabidmining");
+    const bool wssPort  = (port() == 10300) || (port() == 443);
+
+    if (!isWSS() && !rabid && !wssPort) {
+        return;
+    }
+
+    m_mode = MODE_DAEMON;
+
+#   if defined(XMRIG_FEATURE_TLS)
+    if (!isWSS()) {
+        char buf[384];
+        snprintf(buf, sizeof(buf), "wss://%s:%u", host.data(), static_cast<unsigned>(port()));
+        m_url = Url(buf);
+        m_flags.set(FLAG_TLS, true);
+    }
+
+    if (m_pollInterval == kDefaultPollInterval) {
+        m_pollInterval = 5000;
     }
 #   endif
 }
+#   endif
 
 
 #ifdef XMRIG_FEATURE_BENCHMARK

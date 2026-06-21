@@ -1,0 +1,51 @@
+{
+  "bind": {
+    "host": "0.0.0.0",
+    "port": 3333
+  },
+  "fallback_route": "fallback",
+  "routes": [
+    {
+      "key": "rx0",
+      "match_algos": ["rx/0", "rx0", "randomx", "randomx/0"],
+      "upstream_host": "127.0.0.1",
+      "upstream_port": 3336,
+      "enabled": true
+    },
+    {
+      "key": "ghostrider",
+      "match_algos": ["ghostrider"],
+      "upstream_host": "127.0.0.1",
+      "upstream_port": 3337,
+      "enabled": true
+    },
+    {
+      "key": "verus",
+      "match_algos": ["verushash", "verus"],
+      "upstream_host": "127.0.0.1",
+      "upstream_port": 3334,
+      "enabled": true
+    },
+    {
+      "key": "dero",
+      "match_algos": ["astrobwt/v3", "astrobwtv3", "astrobwtv3/dero", "astrobwt/dero"],
+      "upstream_host": "127.0.0.1",
+      "upstream_port": 3335,
+      "enabled": true
+    },
+    {
+      "key": "crb",
+      "match_algos": ["nm/1", "neuromorph", "cereblix"],
+      "upstream_host": "127.0.0.1",
+      "upstream_port": 3338,
+      "enabled": true
+    },
+    {
+      "key": "fallback",
+      "match_algos": [],
+      "upstream_host": "127.0.0.1",
+      "upstream_port": 3336,
+      "enabled": true
+    }
+  ]
+}

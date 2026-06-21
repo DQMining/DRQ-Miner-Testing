@@ -187,6 +187,10 @@ void xmrig::CpuConfig::generate()
     count += xmrig::generate<Algorithm::ASTROBWT>(m_threads, m_limit);
 #endif
 
+#ifdef XMRIG_ALGO_NM
+    count += xmrig::generate<Algorithm::NM>(m_threads, m_limit);
+#endif
+
     m_shouldSave |= count > 0;
 }
 

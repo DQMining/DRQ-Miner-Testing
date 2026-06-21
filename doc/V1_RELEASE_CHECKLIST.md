@@ -1,8 +1,8 @@
 # V1 GitHub release — readiness
 
-Target: **tag `v1.0.0`** on GitHub with downloadable binaries and honest feature matrix.
+Target: **tag `v1.0.8`** on GitHub (current) with downloadable binaries and honest feature matrix.
 
-Last updated against tree state: **DRQ Miner 6.25.0** (`src/version.h`).
+Last updated against tree state: **DRQ Miner 6.25.0** (`src/version.h`), release **v1.0.8** published.
 
 ---
 
@@ -10,14 +10,15 @@ Last updated against tree state: **DRQ Miner 6.25.0** (`src/version.h`).
 
 | Track | Readiness | Blocker |
 |-------|-----------|---------|
-| **Windows x64** (Verus + DERO Rabid) | **Ship-ready** | You already validated shares on desktop |
-| **GitHub Release v1.0.0** (process) | **~1–2 days** | Tag, release notes, upload 3–4 zip artifacts, SHA256 |
-| **Linux x64 / macOS arm64** | **~90%** | CI builds; soak-test DERO/Verus per OS |
-| **Phone Userland — DERO CPU** | **~70%** | Code path exists (divsufsort); **needs real device soak test** |
-| **Phone Userland — Verus CPU** | **~75%** | Same |
-| **Phone GPU** | **Not v1** | OpenCL often missing; do not promise in v1 notes |
+| **Windows x64** (Verus + DERO Rabid) | **Ship-ready** | Desktop shares validated; CUDA/OpenCL Verus optional |
+| **GitHub Release v1.0.8** | **Done** | CI green; win64 + linux-x64 + phone arm64 published |
+| **Linux x64** | **Ship-ready** | CI builds; soak-test optional |
+| **Phone Userland — DERO CPU** | **~95%** | v1.0.8 TNN path (SPSA + NEON); **device soak on S20** to confirm ~4 kH/s + shares |
+| **Phone Userland — Verus CPU** | **~90%** | Built in phone slim preset; optional Rabid/VIPOR soak |
+| **macOS arm64** | **~80%** | Main Build CI libuv issue; not blocking Release artifacts |
+| **Phone GPU** | **Not v1** | OpenCL off in phone build |
 
-**Bottom line:** You can ship **v1.0.0 for Windows x64 today** with Verus + DERO called out as tested. For **phones + DERO**, treat v1 as **“CPU mining supported, beta on arm64”** after one successful Rabid run on your Userland device—or ship **v1.0.0** desktop now and **v1.1.0** once phone DERO is confirmed.
+**Bottom line:** Phase 1 **Verus + DERO desktop** is done. Phone DERO needs **v1.0.8 soak** on Userland (not v1.0.6/7). Then Phase 2 (**BC3 SHA3-256t**) starts — see `doc/PHASE2_BACKLOG.md`.
 
 ---
 
@@ -56,14 +57,14 @@ Last updated against tree state: **DRQ Miner 6.25.0** (`src/version.h`).
 
 ## DERO on phone CPU — technical status
 
-| Component | Phone (arm64) | Desktop Windows |
-|-----------|---------------|-----------------|
-| AstroBWT v3 algorithm | **Yes** (portable C++ loop) | Yes |
+| Component | Phone (arm64) v1.0.8+ | Desktop Windows |
+|-----------|------------------------|-----------------|
+| AstroBWT v3 algorithm | **Yes** (TNN `branchComputeCPU_aarch64`) | Yes (Wolf AVX2 + SPSA) |
 | Wolf SIMD fast path | **No** (AVX2 only) | Yes |
-| AstroSPSA fast SA | **No** (x86 DLL / lib) | Yes (if DLL present) |
-| Suffix array | **divsufsort** (consensus-correct) | SPSA or divsufsort |
+| AstroSPSA fast SA | **Yes** (static `.a`) | Yes (DLL if present) |
+| Suffix array | **SPSA** (fallback divsufsort if SPSA off) | SPSA or divsufsort |
 | Rabid `wss://` + `--daemon` | **Yes** (TLS + HTTP in build) | Yes |
-| Expected speed | Low (thermal-limited) | High on 14900K etc. |
+| Expected speed | **~3.5–4.2 kH/s** (S20-class, `-t 8`) | High on 14900K etc. |
 
 **Phone build must have:** `-DWITH_ASTROBWT=ON -DWITH_HTTP=ON -DWITH_TLS=ON`  
 Use `scripts/android/build_userland.sh` or full `linux-arm64-Release` preset.

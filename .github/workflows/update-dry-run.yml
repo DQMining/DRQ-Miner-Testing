@@ -1,0 +1,15 @@
+name: Update Dry Run
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dry-run-update-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run manifest update dry-run
+        shell: pwsh
+        run: |
+          .\scripts\upstream\check_update_dry_run.ps1

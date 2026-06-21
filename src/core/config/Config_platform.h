@@ -31,7 +31,7 @@
 namespace xmrig {
 
 
-static const char short_options[] = "a:c:kBp:Px:r:R:s:t:T:o:u:O:v:l:Sx:46";
+static const char short_options[] = "a:c:kBp:Px:r:R:s:t:T:o:u:O:v:l:Sx:46gG";
 
 
 static const option options[] = {
@@ -54,6 +54,8 @@ static const option options[] = {
 #   endif
     { "av",                    1, nullptr, IConfig::AVKey                 },
     { "background",            0, nullptr, IConfig::BackgroundKey         },
+    { "graphic",               0, nullptr, IConfig::GraphicKey            },
+    { "Graphic",               0, nullptr, IConfig::GraphicKey            },
     { "config",                1, nullptr, IConfig::ConfigKey             },
     { "cpu-affinity",          1, nullptr, IConfig::CPUAffinityKey        },
     { "cpu-priority",          1, nullptr, IConfig::CPUPriorityKey        },
@@ -163,6 +165,7 @@ static const option options[] = {
 #   ifdef XMRIG_FEATURE_DMI
     { "no-dmi",                0, nullptr, IConfig::DmiKey                },
 #   endif
+    { "apply-update",          0, nullptr, IConfig::ApplyUpdateKey        },
     { nullptr,                 0, nullptr, 0 }
 };
 

@@ -238,11 +238,13 @@ void xmrig::BaseTransform::transform(rapidjson::Document &doc, int key, const ch
         return set(doc, BaseConfig::kTls, TlsConfig::kGen, arg);
 #   endif
 
+    case IConfig::DonateLevelKey: /* --donate-level */
+        return set(doc, Pools::kDonateLevel, strtod(arg, nullptr));
+
     case IConfig::RetriesKey:       /* --retries */
     case IConfig::RetryPauseKey:    /* --retry-pause */
     case IConfig::PrintTimeKey:     /* --print-time */
     case IConfig::HttpPort:         /* --http-port */
-    case IConfig::DonateLevelKey:   /* --donate-level */
     case IConfig::DaemonPollKey:    /* --daemon-poll-interval */
     case IConfig::DaemonJobTimeoutKey: /* --daemon-job-timeout */
     case IConfig::DnsTtlKey:        /* --dns-ttl */
@@ -250,6 +252,8 @@ void xmrig::BaseTransform::transform(rapidjson::Document &doc, int key, const ch
         return transformUint64(doc, key, static_cast<uint64_t>(strtol(arg, nullptr, 10)));
 
     case IConfig::BackgroundKey:  /* --background */
+    case IConfig::GraphicKey:     /* -g/--graphic */
+    case IConfig::GraphicKeyAlt:  /* -G */
     case IConfig::SyslogKey:      /* --syslog */
     case IConfig::KeepAliveKey:   /* --keepalive */
     case IConfig::NicehashKey:    /* --nicehash */

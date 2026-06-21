@@ -228,10 +228,16 @@ int64_t xmrig::Client::submit(const JobResult &result)
     const char *data  = result.result;
 #   else
     char *nonce = m_tempBuf.data();
-    char *data  = m_tempBuf.data() + 16;
-    char *signature = m_tempBuf.data() + 88;
+#   ifdef XMRIG_ALGO_NM
+    const size_t nonceBytes = (result.algorithm.family() == Algorithm::NM) ? sizeof(uint64_t) : sizeof(uint32_t);
+#   else
+    const size_t nonceBytes = sizeof(uint32_t);
+#   endif
+    const size_t nonceHexSize = nonceBytes * 2 + 1;
+    char *data  = m_tempBuf.data() + nonceHexSize;
+    char *signature = data + 65;
 
-    Cvt::toHex(nonce, sizeof(uint32_t) * 2 + 1, reinterpret_cast<const uint8_t *>(&result.nonce), sizeof(uint32_t));
+    Cvt::toHex(nonce, nonceHexSize, reinterpret_cast<const uint8_t *>(&result.nonce), nonceBytes);
     Cvt::toHex(data, 65, result.result(), 32);
 
     if (result.minerSignature()) {
@@ -447,6 +453,16 @@ bool xmrig::Client::parseJob(const rapidjson::Value &params, int *code)
         *code = 7;
         return false;
     }
+
+#   ifdef XMRIG_ALGO_NM
+    if (m_pool.mode() != Pool::MODE_SELF_SELECT && job.algorithm().family() == Algorithm::NM) {
+        const char *seedHash = Json::getString(params, "seed_hash");
+        if (seedHash && !job.setSeedHash(seedHash)) {
+            *code = 7;
+            return false;
+        }
+    }
+#   endif
 
     job.setSigKey(Json::getString(params, "sig_key"));
 

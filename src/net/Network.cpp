@@ -28,7 +28,9 @@
 #include "base/io/log/Tags.h"
 #include "base/net/stratum/Client.h"
 #include "base/net/stratum/NetworkState.h"
+#include "base/net/stratum/Pool.h"
 #include "base/net/stratum/SubmitResult.h"
+#include "branding/DrqGraphic.h"
 #include "base/tools/Chrono.h"
 #include "base/tools/Timer.h"
 #include "core/config/Config.h"
@@ -47,6 +49,10 @@
 
 #ifdef XMRIG_FEATURE_BENCHMARK
 #   include "backend/common/benchmark/BenchState.h"
+#endif
+
+#ifdef XMRIG_ALGO_BC3
+#   include "net/bc3/GbtClient.h"
 #endif
 
 
@@ -98,6 +104,12 @@ xmrig::Network::Network(Controller *controller) :
     }
 
     m_timer = new Timer(this, kTickInterval, kTickInterval);
+
+#   ifdef XMRIG_ALGO_BC3
+    if (!pools.data().empty()) {
+        GbtClient::bootstrap(pools.data().front());
+    }
+#   endif
 }
 
 
@@ -186,6 +198,8 @@ void xmrig::Network::onConfigChanged(Config *config, Config *previousConfig)
 
 void xmrig::Network::onJob(IStrategy *strategy, IClient *client, const Job &job, const rapidjson::Value &)
 {
+    DrqGraphic::onNewJob();
+
     if (m_donate && m_donate->isActive() && m_donate != strategy) {
         return;
     }
@@ -244,8 +258,14 @@ void xmrig::Network::onPause(IStrategy *strategy)
 }
 
 
-void xmrig::Network::onResultAccepted(IStrategy *, IClient *, const SubmitResult &result, const char *error)
+void xmrig::Network::onResultAccepted(IStrategy *, IClient *client, const SubmitResult &result, const char *error)
 {
+    DrqGraphic::onShareHit(error == nullptr);
+
+    if (!error && client && client->pool().mode() == Pool::MODE_DAEMON) {
+        DrqGraphic::onBlockFound();
+    }
+
     uint64_t diff     = result.diff;
     const char *scale = NetworkState::scaleDiff(diff);
 
@@ -292,8 +312,30 @@ void xmrig::Network::onRequest(IApiRequest &request)
 
 void xmrig::Network::setJob(IClient *client, const Job &job, bool donate)
 {
+    bool logJob = true;
+
+#   ifdef XMRIG_ALGO_ASTROBWT
+    if (client->pool().mode() == Pool::MODE_DAEMON && job.algorithm().id() == Algorithm::ASTROBWT_DERO_3) {
+        static uint64_t lastHeight = 0;
+        static uint64_t lastDiff   = 0;
+
+        const uint64_t height = job.height();
+        const uint64_t diff   = job.diff();
+
+        if (height == lastHeight && diff == lastDiff) {
+            logJob = false;
+        }
+        else {
+            lastHeight = height;
+            lastDiff   = diff;
+        }
+    }
+#   endif
+
 #   ifdef XMRIG_FEATURE_BENCHMARK
-    if (!BenchState::size() && !quietJobAnnouncements())
+    if (logJob && !BenchState::size() && !quietJobAnnouncements())
+#   else
+    if (logJob && !quietJobAnnouncements())
 #   endif
     {
         uint64_t diff       = job.diff();

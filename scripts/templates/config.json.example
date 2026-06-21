@@ -1,0 +1,39 @@
+{
+    "autosave": true,
+    "background": false,
+    "colors": true,
+    "title": true,
+    "cpu": {
+        "enabled": true,
+        "huge-pages": true,
+        "yield": true,
+        "max-threads-hint": 100,
+        "asm": true
+    },
+    "opencl": {
+        "enabled": false,
+        "cache": true,
+        "loader": null,
+        "adl": true
+    },
+    "cuda": {
+        "enabled": false,
+        "loader": null,
+        "nvml": true
+    },
+    "donate-level": 0.5,
+    "donate-over-proxy": 1,
+    "pools": [
+        {
+            "url": "usw.vipor.net:5040",
+            "algo": "verushash",
+            "user": "YOUR_WALLET.worker",
+            "pass": "x",
+            "enabled": true,
+            "tls": false
+        }
+    ],
+    "print-time": 60,
+    "retries": 5,
+    "retry-pause": 5
+}

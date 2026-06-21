@@ -74,6 +74,14 @@ protected:
     void onTimer(const Timer *timer) override;
 
 private:
+    struct DonateRoute
+    {
+        const char *host = nullptr;
+        uint16_t port = 0;
+        uint16_t tlsPort = 0;
+        Pool::Mode mode = Pool::MODE_POOL;
+    };
+
     enum State {
         STATE_NEW,
         STATE_IDLE,
@@ -85,6 +93,8 @@ private:
     inline State state() const { return m_state; }
 
     IClient *createProxy();
+    DonateRoute resolveRoute(const Algorithm &algo) const;
+    void rebuildStrategy(const Algorithm &algo);
     void idle(double min, double max);
     void setJob(IClient *client, const Job &job, const rapidjson::Value &params);
     void setParams(rapidjson::Document &doc, rapidjson::Value &params);

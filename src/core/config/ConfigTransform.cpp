@@ -119,6 +119,15 @@ void xmrig::ConfigTransform::finalize(rapidjson::Document &doc)
 
 void xmrig::ConfigTransform::transform(rapidjson::Document &doc, int key, const char *arg)
 {
+    switch (key) {
+    case IConfig::GraphicKey:     /* -g/--graphic */
+    case IConfig::GraphicKeyAlt:  /* -G */
+        return set(doc, Config::kGraphic, true);
+
+    default:
+        break;
+    }
+
     BaseTransform::transform(doc, key, arg);
 
     switch (key) {

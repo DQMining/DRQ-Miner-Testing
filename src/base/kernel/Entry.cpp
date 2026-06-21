@@ -40,6 +40,8 @@
 
 #include "base/kernel/Entry.h"
 #include "base/kernel/Process.h"
+#include "branding/DrqBanner.h"
+#include "branding/DrqSetup.h"
 #include "core/config/usage.h"
 #include "version.h"
 
@@ -49,6 +51,8 @@ namespace xmrig {
 
 static int showVersion()
 {
+    DrqBanner::print();
+
     printf(APP_NAME " " APP_VERSION "\n built on " __DATE__
 
 #   if defined(__clang__)
@@ -143,6 +147,10 @@ xmrig::Entry::Id xmrig::Entry::get(const Process &process)
          return Version;
     }
 
+    if (args.hasArg("--setup")) {
+         return Setup;
+    }
+
 #   ifdef XMRIG_FEATURE_HWLOC
     if (args.hasArg("--export-topology")) {
         return Topo;
@@ -168,6 +176,9 @@ int xmrig::Entry::exec(const Process &process, Id id)
 
     case Version:
         return showVersion();
+
+    case Setup:
+        return DrqSetup::run(process, DrqSetup::Force);
 
 #   ifdef XMRIG_FEATURE_HWLOC
     case Topo:

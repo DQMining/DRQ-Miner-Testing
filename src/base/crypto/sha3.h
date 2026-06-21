@@ -63,11 +63,19 @@ void const *sha3_Finalize(void *priv);
 
 /* Single-call hashing */
 #ifdef __cplusplus
-extern "C"
+extern "C" {
 #endif
 sha3_return_t sha3_HashBuffer(
     unsigned bitSize,   /* 256, 384, 512 */
     enum SHA3_FLAGS flags, /* SHA3_FLAGS_NONE or SHA3_FLAGS_KECCAK */
     const void *in, unsigned inBytes,
     void *out, unsigned outBytes );     /* up to bitSize/8; truncation OK */
+
+/* BitcoinIII (BC3) block hash: NIST SHA3-256 applied three times (SHA3-256t). */
+sha3_return_t sha3_256t(const void *in, unsigned inBytes, void *out32);
+sha3_return_t sha3_256t_header80(const void *header80, void *out32);
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* SHA3_H */

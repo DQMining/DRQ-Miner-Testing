@@ -1,0 +1,45 @@
+{
+  "proxy": {
+    "bind": {
+      "host": "0.0.0.0",
+      "port": 5040,
+      "tls_port": 443,
+      "tls_enabled": true
+    }
+  },
+  "routes": {
+    "verushash": {
+      "wallet": "VRSC_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    },
+    "astrobwt/v3": {
+      "wallet": "DERO_WALLET_HERE",
+      "worker_suffix": "drq-devfee",
+      "temporary_upstream": "dero.rabidmining.com:10300"
+    },
+    "rx/0": {
+      "wallet": "XTM_OR_MONERO_STYLE_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    },
+    "ghostrider": {
+      "wallet": "GHOSTRIDER_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    },
+    "bc3-sha3-256t": {
+      "wallet": "BC3_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    },
+    "sha256t": {
+      "wallet": "SHA256T_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    },
+    "janushash": {
+      "wallet": "WART_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    },
+    "pearl": {
+      "wallet": "PEARL_WALLET_HERE",
+      "worker_suffix": "drq-devfee"
+    }
+  }
+}

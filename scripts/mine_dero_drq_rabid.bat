@@ -1,5 +1,5 @@
 @echo off
-REM DRQMiner AstroBWT v3 on Rabid (requires wss:// and --daemon).
+REM DRQMiner AstroBWT v3 on Rabid (plain host:port; WSS daemon mode is automatic).
 
 setlocal
 cd /d "%~dp0"
@@ -10,8 +10,8 @@ if not exist "%MINER%" set "MINER=DRQMiner-Release.exe"
 echo DRQMiner DERO Rabid - enable huge pages in config for best results
 echo.
 
-"%MINER%" --daemon -a astrobwt/v3 ^
-  -o wss://dero.rabidmining.com:10300 ^
+"%MINER%" -a astrobwtv3/dero ^
+  -o dero.rabidmining.com:10300 ^
   -u dero1qy5c4sl5p2carlla465gyexlh6vye32v039tsxe4gp9zrha30cv9uqgr66utu ^
   -p x -t 32
 

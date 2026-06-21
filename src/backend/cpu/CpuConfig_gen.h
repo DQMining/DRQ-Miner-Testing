@@ -166,6 +166,14 @@ size_t inline generate<Algorithm::ASTROBWT>(Threads<CpuThreads>& threads, uint32
 }
 #endif
 
+#ifdef XMRIG_ALGO_NM
+template<>
+size_t inline generate<Algorithm::NM>(Threads<CpuThreads>& threads, uint32_t limit)
+{
+    return generate(Algorithm::kNM, threads, Algorithm::NM_1, limit);
+}
+#endif
+
 
 } /* namespace xmrig */
 

@@ -88,6 +88,9 @@ public:
 #       ifdef XMRIG_ALGO_ASTROBWT
         ASTROBWT_DERO_3 = 0x41140100,   // "astrobwt/v3"      AstroBWT v3 (Dero HE) - l3=1MB for ScratchData+buckets
 #       endif
+#       ifdef XMRIG_ALGO_NM
+        NM_1            = 0x6e150001,   // "nm/1"             Neuromorph / Cereblix
+#       endif
     };
 
     enum Family : uint32_t {
@@ -106,7 +109,10 @@ public:
         VERUSHASH_FAMILY = 0x76000000,
 #       endif
 #       ifdef XMRIG_ALGO_ASTROBWT
-        ASTROBWT        = 0x41000000
+        ASTROBWT        = 0x41000000,
+#       endif
+#       ifdef XMRIG_ALGO_NM
+        NM              = 0x6e000000,
 #       endif
     };
 
@@ -182,6 +188,11 @@ public:
 #   ifdef XMRIG_ALGO_ASTROBWT
     static const char *kASTROBWT;
     static const char *kASTROBWT_DERO_3;
+#   endif
+
+#   ifdef XMRIG_ALGO_NM
+    static const char *kNM;
+    static const char *kNM_1;
 #   endif
 
     inline Algorithm() = default;

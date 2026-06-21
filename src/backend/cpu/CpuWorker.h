@@ -31,6 +31,10 @@
 class randomx_vm;
 #endif
 
+#ifdef XMRIG_ALGO_NM
+#   include "crypto/nm/nm_fast.h"
+#endif
+
 
 namespace xmrig {
 
@@ -77,6 +81,10 @@ private:
     void allocateRandomX_VM();
 #   endif
 
+#   ifdef XMRIG_ALGO_NM
+    void allocateNm();
+#   endif
+
     bool nextRound();
     bool verify(const Algorithm &algorithm, const uint8_t *referenceValue);
     bool verify2(const Algorithm &algorithm, const uint8_t *referenceValue);
@@ -98,6 +106,14 @@ private:
 #   ifdef XMRIG_ALGO_RANDOMX
     randomx_vm *m_vm        = nullptr;
     Buffer m_seed;
+#   endif
+
+#   ifdef XMRIG_ALGO_NM
+    nm_lane m_nmLane{};
+    const nm_epoch *m_nmEpoch = nullptr;
+    bool   m_nmInit = false;
+    bool   m_nmHugePages = false;
+    Buffer m_nmSeed;
 #   endif
 
 #   ifdef XMRIG_ALGO_GHOSTRIDER
