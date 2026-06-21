@@ -85,7 +85,9 @@ jobs:
 
       - name: Verify static binary (no libhwloc.so)
         run: |
-          ldd out/build/linux-x64-Release/drqminer 2>&1 | grep -q "not a dynamic executable"
+          _out="$(ldd out/build/linux-x64-Release/drqminer 2>&1 || true)"
+          echo "${_out}"
+          echo "${_out}" | grep -Eq "not a dynamic executable|statically linked"
           file out/build/linux-x64-Release/drqminer
 
       - name: Package

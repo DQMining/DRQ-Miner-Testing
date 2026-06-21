@@ -18,11 +18,12 @@ cmake --preset linux-x64-Release \
 
 cmake --build "${BUILD_DIR}" --target xmrig -j"${JOBS}"
 
-if ldd "${BUILD_DIR}/drqminer" 2>&1 | grep -q "not a dynamic executable"; then
+_ldd_out="$(ldd "${BUILD_DIR}/drqminer" 2>&1 || true)"
+if echo "${_ldd_out}" | grep -Eq "not a dynamic executable|statically linked"; then
   echo "OK: drqminer is fully static (no host libhwloc required)"
 else
   echo "ERROR: drqminer still has dynamic library dependencies:" >&2
-  ldd "${BUILD_DIR}/drqminer" >&2 || true
+  echo "${_ldd_out}" >&2
   exit 1
 fi
 
