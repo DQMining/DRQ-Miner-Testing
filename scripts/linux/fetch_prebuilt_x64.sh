@@ -2,7 +2,7 @@
 # Download and run DRQ Miner linux-x64 prebuilt (nm/1 + Verus + DERO).
 set -euo pipefail
 
-TAG="${1:-v1.0.9}"
+TAG="${1:-v1.0.10}"
 WALLET="${2:-YOUR_WALLET}"
 POOL="${3:-eu.hashmonkeys.cloud:12427}"
 

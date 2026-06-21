@@ -1,14 +1,15 @@
 # Userland — download and mine (public repo)
 
 Repo: **https://github.com/DQMining/DRQ-Miner-Testing** (public)  
-Latest release: **v1.0.9** — nm/1 (Neuromorph), VAES-256 on x64, ARM-AES on phones
+Latest release: **v1.0.10** — nm/1 (Neuromorph), VAES-256 on x64, ARM-AES on phones  
+Linux x64 prebuilt is **fully static** (no `apt install libhwloc` needed).
 
 ## Download (phone — arm64)
 
 ```bash
 cd ~
 wget -O drqminer-linux-arm64-phone.tar.gz \
-  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.9/drqminer-linux-arm64-phone.tar.gz
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.10/drqminer-linux-arm64-phone.tar.gz
 tar xzf drqminer-linux-arm64-phone.tar.gz
 chmod +x drqminer
 ./drqminer -V
@@ -19,13 +20,13 @@ chmod +x drqminer
 ```bash
 cd ~/Miners
 wget -O drqminer-linux-x64.tar.gz \
-  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.9/drqminer-linux-x64.tar.gz
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.10/drqminer-linux-x64.tar.gz
 tar xzf drqminer-linux-x64.tar.gz
 chmod +x drqminer
 ./drqminer -V
 ```
 
-Or use `bash scripts/linux/fetch_prebuilt_x64.sh v1.0.9 YOUR_WALLET`.
+Or use `bash scripts/linux/fetch_prebuilt_x64.sh v1.0.10 YOUR_WALLET`.
 
 ## Mine Neuromorph (nm/1, Cereblix)
 
@@ -79,12 +80,12 @@ Use any Verus stratum pool. Phone hashrate is modest (thermal-limited); desktop 
 - Dev-fee routing is proxy-oriented by algorithm route; see `doc/DEVFEE_PROXY_BOOTSTRAP.md`.
 - Keep production wallets out of repo files; use private proxy configs.
 
-## Other releases (v1.0.9)
+## Other releases (v1.0.10)
 
 | Asset | URL |
 |-------|-----|
-| Windows | `.../releases/download/v1.0.9/DRQMiner-win64.zip` |
-| Linux x64 | `.../releases/download/v1.0.9/drqminer-linux-x64.tar.gz` |
-| Linux arm64 (phone) | `.../releases/download/v1.0.9/drqminer-linux-arm64-phone.tar.gz` |
+| Windows | `.../releases/download/v1.0.10/DRQMiner-win64.zip` |
+| Linux x64 | `.../releases/download/v1.0.10/drqminer-linux-x64.tar.gz` |
+| Linux arm64 (phone) | `.../releases/download/v1.0.10/drqminer-linux-arm64-phone.tar.gz` |
 
-Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.9/`
+Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.10/`

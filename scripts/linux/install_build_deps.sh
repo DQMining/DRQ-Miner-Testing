@@ -9,7 +9,9 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y git curl ca-certificates build-essential cmake libssl-dev libhwloc-dev
+apt-get install -y git curl ca-certificates build-essential cmake libssl-dev
+
+echo "Note: prebuilt linux-x64 tarballs (v1.0.10+) are static — libhwloc-dev is only needed when building from source."
 
 echo "Done. Build with:"
 echo "  cmake --preset linux-x64-Release"
