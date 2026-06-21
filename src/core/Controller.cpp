@@ -83,7 +83,7 @@ void xmrig::Controller::initUpdateCheck(bool applyUpdate)
         return;
     }
 
-    m_updateCheck = std::make_unique<UpdateCheck>(this, cfg);
+    m_updateCheck.reset(new UpdateCheck(this, cfg));
     m_updateCheck->start();
 #   else
     (void)applyUpdate;
