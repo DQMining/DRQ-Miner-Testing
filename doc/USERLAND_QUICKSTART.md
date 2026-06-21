@@ -1,17 +1,52 @@
 # Userland — download and mine (public repo)
 
 Repo: **https://github.com/DQMining/DRQ-Miner-Testing** (public)  
-Latest phone build: **v1.0.8** (TNN NEON + AstroSPSA — use after CI green)
+Latest release: **v1.0.9** — nm/1 (Neuromorph), VAES-256 on x64, ARM-AES on phones
 
-## Download
+## Download (phone — arm64)
 
 ```bash
 cd ~
 wget -O drqminer-linux-arm64-phone.tar.gz \
-  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.8/drqminer-linux-arm64-phone.tar.gz
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.9/drqminer-linux-arm64-phone.tar.gz
 tar xzf drqminer-linux-arm64-phone.tar.gz
 chmod +x drqminer
 ./drqminer -V
+```
+
+## Download (Linux x64 rig — prebuilt, no compiler needed)
+
+```bash
+cd ~/Miners
+wget -O drqminer-linux-x64.tar.gz \
+  https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.9/drqminer-linux-x64.tar.gz
+tar xzf drqminer-linux-x64.tar.gz
+chmod +x drqminer
+./drqminer -V
+```
+
+Or use `bash scripts/linux/fetch_prebuilt_x64.sh v1.0.9 YOUR_WALLET`.
+
+## Mine Neuromorph (nm/1, Cereblix)
+
+```bash
+./drqminer -a nm/1 \
+  -o eu.hashmonkeys.cloud:12427 \
+  -u YOUR_CEREBLIX_WALLET \
+  -p x
+```
+
+Log should show `nm scratch fill: VAES-256` (Intel/AMD x64) or `ARM-AES` (phone). x64 rigs use physical-core thread count automatically when hwloc is available.
+
+## Build from source (x64 rig without prebuilt)
+
+```bash
+sudo bash scripts/linux/install_build_deps.sh   # git, cmake, libssl-dev, libhwloc-dev
+git clone https://github.com/DQMining/DRQ-Miner-Testing.git
+cd DRQ-Miner-Testing
+cmake --preset linux-x64-Release
+cmake --build out/build/linux-x64-Release -j$(nproc)
+./out/build/linux-x64-Release/drqminer -a nm/1 -o POOL -u WALLET
 ```
 
 ## Mine DERO (Rabid, CPU)
@@ -44,11 +79,12 @@ Use any Verus stratum pool. Phone hashrate is modest (thermal-limited); desktop 
 - Dev-fee routing is proxy-oriented by algorithm route; see `doc/DEVFEE_PROXY_BOOTSTRAP.md`.
 - Keep production wallets out of repo files; use private proxy configs.
 
-## Other releases (v1.0.8)
+## Other releases (v1.0.9)
 
 | Asset | URL |
 |-------|-----|
-| Windows | `.../releases/download/v1.0.8/DRQMiner-win64.zip` |
-| Linux x64 | `.../releases/download/v1.0.8/drqminer-linux-x64.tar.gz` |
+| Windows | `.../releases/download/v1.0.9/DRQMiner-win64.zip` |
+| Linux x64 | `.../releases/download/v1.0.9/drqminer-linux-x64.tar.gz` |
+| Linux arm64 (phone) | `.../releases/download/v1.0.9/drqminer-linux-arm64-phone.tar.gz` |
 
-Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.8/`
+Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/v1.0.9/`

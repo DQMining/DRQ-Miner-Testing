@@ -47,6 +47,10 @@ jobs:
         run: |
           aarch64-linux-gnu-nm out/build/linux-arm64-phone-Release/drqminer | grep -E "branchComputeCPU_aarch64|initSPSA" | head -5
 
+      - name: Verify NM (nm/1) symbols linked
+        run: |
+          aarch64-linux-gnu-nm out/build/linux-arm64-phone-Release/drqminer | grep -E "nm_fast_hash|nm_epoch" | head -5
+
       - name: Verify static binary (no host glibc)
         run: |
           file out/build/linux-arm64-phone-Release/drqminer

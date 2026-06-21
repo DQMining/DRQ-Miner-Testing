@@ -49,8 +49,18 @@ if (WITH_NM)
     list(APPEND SOURCES_CRYPTO ${SOURCES_NM})
 
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        set_source_files_properties(${SOURCES_NM} PROPERTIES
-            COMPILE_FLAGS "-O3 -maes -fno-fast-math -ffp-contract=off")
+        set(_NM_GNU_FLAGS "-O3 -fno-fast-math -ffp-contract=off")
+        if (XMRIG_ARM AND ARM8_CXX_FLAGS)
+            set(_NM_GNU_FLAGS "${_NM_GNU_FLAGS} ${ARM8_CXX_FLAGS}")
+        else()
+            set(_NM_GNU_FLAGS "${_NM_GNU_FLAGS} -maes")
+        endif()
+        set_source_files_properties(
+            src/crypto/nm/nm_params.c
+            src/crypto/nm/nm_fast.c
+            src/crypto/nm/nm_sha256.c
+            PROPERTIES COMPILE_FLAGS "${_NM_GNU_FLAGS}"
+        )
     endif()
 
     if (MSVC)

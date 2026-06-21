@@ -14,6 +14,13 @@
 #   define NM_AESNI 0
 #endif
 
+#if !NM_AESNI && defined(__aarch64__) && (defined(__ARM_FEATURE_AES) || defined(__ARM_FEATURE_CRYPTO))
+#   define NM_AESARM 1
+#   include <arm_neon.h>
+#else
+#   define NM_AESARM 0
+#endif
+
 static const uint8_t NM_SBOX[256] = {
 0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
 0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
@@ -91,6 +98,31 @@ static inline void nm_aes128_encrypt8(const nm_aes128 *a, const uint8_t in[128],
     for (int j=0;j<8;j++) m[j] = _mm_xor_si128(_mm_loadu_si128((const __m128i*)(in+16*j)), rk[0]);
     for (int r=1;r<10;r++) for (int j=0;j<8;j++) m[j] = _mm_aesenc_si128(m[j], rk[r]);
     for (int j=0;j<8;j++){ m[j]=_mm_aesenclast_si128(m[j], rk[10]); _mm_storeu_si128((__m128i*)(out+16*j), m[j]); }
+}
+#elif NM_AESARM
+static inline void nm_aes128_encrypt(const nm_aes128 *a, const uint8_t in[16], uint8_t out[16]) {
+    uint8x16_t s = vld1q_u8(in);
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+0)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+16)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+32)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+48)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+64)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+80)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+96)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+112)));
+    s = vaesmcq_u8(vaeseq_u8(s, vld1q_u8(a->rk+128)));
+    s = vaeseq_u8(s, vld1q_u8(a->rk+144));
+    s = veorq_u8(s, vld1q_u8(a->rk+160));
+    vst1q_u8(out, s);
+}
+
+static inline void nm_aes128_encrypt8(const nm_aes128 *a, const uint8_t in[128], uint8_t out[128]) {
+    uint8x16_t rk[11];
+    for (int r=0;r<11;r++) rk[r] = vld1q_u8(a->rk+16*r);
+    uint8x16_t m[8];
+    for (int j=0;j<8;j++) m[j] = vld1q_u8(in+16*j);
+    for (int r=0;r<9;r++) for (int j=0;j<8;j++) m[j] = vaesmcq_u8(vaeseq_u8(m[j], rk[r]));
+    for (int j=0;j<8;j++){ m[j]=vaeseq_u8(m[j], rk[9]); m[j]=veorq_u8(m[j], rk[10]); vst1q_u8(out+16*j, m[j]); }
 }
 #else
 static inline void nm_aes128_encrypt(const nm_aes128 *a, const uint8_t in[16], uint8_t out[16]) {

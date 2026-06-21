@@ -15,12 +15,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#if defined(_MSC_VER)
-#   include <intrin.h>
-#   include <immintrin.h>
+#if defined(__x86_64__) || defined(_M_X64)
+#   if defined(_MSC_VER)
+#       include <intrin.h>
+#       include <immintrin.h>
+#   else
+#       include <x86intrin.h>
+#       include <cpuid.h>
+#   endif
+#   define NM_FAST_X86 1
 #else
-#   include <x86intrin.h>
-#   include <cpuid.h>
+#   define NM_FAST_X86 0
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -89,6 +94,7 @@ void nm_fast_lane_attach(nm_lane *l, void *scratch){ l->scratch=(uint64_t*)scrat
 
 void nm_fast_build_dataset(const nm_epoch *e, uint64_t *dataset){
     nm_aes128 a; nm_aes128_expand(&a, e->params.dataset_key);
+#if NM_FAST_X86
     __m128i rk[11]; for(int r=0;r<11;r++) rk[r]=_mm_loadu_si128((const __m128i*)(a.rk+16*r));
     for(uint32_t i=0;i<NM_DATASET_WORDS;i+=16){
         __m128i m[8];
@@ -96,16 +102,31 @@ void nm_fast_build_dataset(const nm_epoch *e, uint64_t *dataset){
         for(int r=1;r<10;r++){ __m128i k=rk[r]; for(int j=0;j<8;j++) m[j]=_mm_aesenc_si128(m[j],k); }
         for(int j=0;j<8;j++) _mm_storeu_si128((__m128i*)&dataset[i+2*j],_mm_aesenclast_si128(m[j],rk[10]));
     }
+#else
+    uint8_t stage[128], outs[128];
+    for (uint32_t i = 0; i < NM_DATASET_WORDS; i += 16) {
+        for (int j = 0; j < 8; j++) {
+            put64(stage + 16 * j, (uint64_t) (i + 2 * j));
+            put64(stage + 16 * j + 8, 0);
+        }
+        nm_aes128_encrypt8(&a, stage, outs);
+        for (int j = 0; j < 8; j++) {
+            dataset[i + 2 * j]     = le64(outs + 16 * j);
+            dataset[i + 2 * j + 1] = le64(outs + 16 * j + 8);
+        }
+    }
+#endif
 }
 
-/* optimized 2 MiB scratchpad fill: inlined 8-way AES-CTR, direct __m128i stores */
+/* optimized 2 MiB scratchpad fill */
 static void fill_scratch(const nm_epoch *e, nm_lane *l, const uint8_t seed[32]){
     (void)e;
     uint8_t key[32],t[33]; memcpy(t,seed,32); t[32]=0x53; nm_sha256(t,33,key);
     nm_aes128 a; nm_aes128_expand(&a,key);
-    __m128i rk[11]; for(int r=0;r<11;r++) rk[r]=_mm_loadu_si128((const __m128i*)(a.rk+16*r));
     uint64_t khi; memcpy(&khi,key+24,8);
     uint64_t *sc=l->scratch;
+#if NM_FAST_X86
+    __m128i rk[11]; for(int r=0;r<11;r++) rk[r]=_mm_loadu_si128((const __m128i*)(a.rk+16*r));
     for(uint32_t i=0;i<NM_SCRATCH_WORDS;i+=16){
         __m128i m0=_mm_xor_si128(_mm_set_epi64x((long long)khi,(long long)(uint64_t)(i+0)),rk[0]);
         __m128i m1=_mm_xor_si128(_mm_set_epi64x((long long)khi,(long long)(uint64_t)(i+2)),rk[0]);
@@ -128,6 +149,20 @@ static void fill_scratch(const nm_epoch *e, nm_lane *l, const uint8_t seed[32]){
         _mm_storeu_si128((__m128i*)&sc[i+12],_mm_aesenclast_si128(m6,kl));
         _mm_storeu_si128((__m128i*)&sc[i+14],_mm_aesenclast_si128(m7,kl));
     }
+#else
+    uint8_t stage[128], outs[128];
+    for (uint32_t i = 0; i < NM_SCRATCH_WORDS; i += 16) {
+        for (int j = 0; j < 8; j++) {
+            put64(stage + 16 * j, (uint64_t) (i + 2 * j));
+            put64(stage + 16 * j + 8, khi);
+        }
+        nm_aes128_encrypt8(&a, stage, outs);
+        for (int j = 0; j < 8; j++) {
+            sc[i + 2 * j]     = le64(outs + 16 * j);
+            sc[i + 2 * j + 1] = le64(outs + 16 * j + 8);
+        }
+    }
+#endif
 }
 
 #if defined(__x86_64__) || defined(_M_X64)
@@ -208,6 +243,16 @@ static void fill_scratch_vaes512(const nm_epoch *e, nm_lane *l, const uint8_t se
  * Override/A-B: NM_FILL=aesni|vaes256|vaes512, NM_NO_VAES=1 (force AES-NI). */
 static void select_fill(void){
     static int done=0; if(done) return; done=1;
+
+#if defined(__aarch64__)
+    g_fillfn = fill_scratch;
+#   if NM_AESARM
+    g_fillname = "ARM-AES";
+#   else
+    g_fillname = "AES-SW";
+#   endif
+    return;
+#endif
 
     unsigned a = 0, b = 0, c = 0, d = 0;
     int has_vaes = 0, has_avx512 = 0;
@@ -423,12 +468,21 @@ static inline void loop_fold(nm_lane *l, uint64_t r[16], double f[8], int loop){
     for(int i=0;i<8;i++)  r[i+8]^=d2bits(f[i]);
 }
 
-/* AVX2 XOR-fold of the whole 2 MiB scratchpad */
+/* AVX2 XOR-fold of the whole 2 MiB scratchpad (x86); scalar on ARM/other */
 static inline void final_fold(nm_lane *l, uint64_t fold[8]){
+#if NM_FAST_X86
     __m256i a0=_mm256_setzero_si256(), a1=_mm256_setzero_si256();
     const __m256i *sp=(const __m256i*)l->scratch;
     for(uint32_t i=0;i<NM_SCRATCH_WORDS/4;i+=2){ a0=_mm256_xor_si256(a0,_mm256_loadu_si256(sp+i)); a1=_mm256_xor_si256(a1,_mm256_loadu_si256(sp+i+1)); }
     _mm256_storeu_si256((__m256i*)fold,a0); _mm256_storeu_si256((__m256i*)(fold+4),a1);
+#else
+    memset(fold, 0, 8 * sizeof(uint64_t));
+    for (uint32_t i = 0; i < NM_SCRATCH_WORDS; i += 8) {
+        for (int j = 0; j < 8; j++) {
+            fold[j] ^= l->scratch[i + j];
+        }
+    }
+#endif
 }
 
 static void digest(const uint8_t seed[32], const uint64_t r[16], const double f[8],
