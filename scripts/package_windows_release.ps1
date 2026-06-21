@@ -39,6 +39,24 @@ function Write-Step([string]$Message) {
     if (-not $Quiet) { Write-Host "[release] $Message" }
 }
 
+function Get-Sha256Hex([string]$Path) {
+    if (Get-Command Get-FileHash -ErrorAction SilentlyContinue) {
+        return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [System.IO.File]::OpenRead($Path)
+        try {
+            $bytes = $sha.ComputeHash($stream)
+        } finally {
+            $stream.Close()
+        }
+        return ([BitConverter]::ToString($bytes) -replace '-', '').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
 function Get-RepoRoot {
     $root = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
     if (-not (Test-Path (Join-Path $root "CMakeLists.txt"))) {
@@ -399,7 +417,7 @@ $manifestSorted = Get-ChildItem $OutputDir -File | Sort-Object Name
 $manifestLines = @("file`tbytes`tsha256")
 foreach ($f in $manifestSorted) {
     if ($f.Name -eq "MANIFEST.txt") { continue }
-    $hash = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    $hash = Get-Sha256Hex $f.FullName
     $manifestLines += ("{0}`t{1}`t{2}" -f $f.Name, $f.Length, $hash)
 }
 $manifestLines | Set-Content -Path $manifestPath -Encoding UTF8
