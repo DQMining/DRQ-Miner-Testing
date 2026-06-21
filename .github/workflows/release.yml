@@ -174,7 +174,51 @@ jobs:
 
       - name: Build release notes body
         run: |
-          cat > release_body.md <<'EOF'
+          TAG="${GITHUB_REF_NAME}"
+          if echo "$TAG" | grep -qi beta; then
+            cat > release_body.md <<'EOF'
+          ## DRQ Miner **beta** — Neuromorph (`nm/1` / Cereblix)
+
+          Discord: https://discord.gg/ZJwJune3
+
+          First public beta with **nm/1** mining (UNM `nm_fast` port). Also includes DERO AstroBWT v3, Verus CPU, and prior phone paths.
+
+          ### Download (replace `TAG` with this release tag)
+
+          | Platform | Asset |
+          |----------|-------|
+          | Windows x64 | `DRQMiner-win64.zip` |
+          | Linux x64 rig | `drqminer-linux-x64.tar.gz` (static — no libhwloc apt needed) |
+          | Linux arm64 phone | `drqminer-linux-arm64-phone.tar.gz` |
+
+          Base: `https://github.com/DQMining/DRQ-Miner-Testing/releases/download/TAG/`
+
+          ### Mine nm/1 (example)
+
+          ```bash
+          ./drqminer -a nm/1 -o eu.hashmonkeys.cloud:12427 -u YOUR_WALLET
+          ```
+
+          Startup log should show `nm scratch fill: VAES-256` (Zen3+/14900K), `AES-NI` (Haswell/Xeon v3 rigs), or `ARM-AES` (phones).
+
+          ### Observed hashrate (nm/1, pool diff — your mileage may vary)
+
+          | Hardware | Typical |
+          |----------|---------|
+          | i9-14900K (24 phys cores) | ~28–30 kH/s |
+          | Galaxy S20-class phone | modest (thermal-limited) |
+          | Xeon E3-1240 v3 / 1240Lv3 rig | ~3.0 kH/s (reference miners ~3.4+ kH/s — tuning backlog) |
+
+          ### Known beta limitations
+
+          - Older x64 CPUs without VAES use AES-NI scratch fill (slower than Zen4/14900K path).
+          - Dev-fee proxy routes need operator-side wallet mapping.
+          - Auto-update manifest channel is **beta** for this tag.
+
+          Feedback welcome on Discord or GitHub issues.
+          EOF
+          else
+            cat > release_body.md <<'EOF'
           ## DRQ Miner release
 
           Discord: https://discord.gg/ZJwJune3
@@ -187,10 +231,12 @@ jobs:
           - Dev-fee proxy routes require operator-side wallet mapping.
           - Some protocols may need DRQ Proxy adapters per algorithm.
           EOF
+          fi
 
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, 'beta') }}
           body_path: release_body.md
           files: |
             dist/drqminer-linux-arm64-phone.tar.gz

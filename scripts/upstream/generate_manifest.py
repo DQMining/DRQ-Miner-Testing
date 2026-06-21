@@ -32,7 +32,9 @@ def read_app_version(version_h: Path) -> str:
 
 
 def channel_for_tag(tag: str) -> str:
-    return "beta" if tag.startswith("beta-") else "stable"
+    if tag.startswith("beta-") or "-beta" in tag.lower():
+        return "beta"
+    return "stable"
 
 
 def main() -> int:
