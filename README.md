@@ -11,7 +11,7 @@ Pre-release builds for internal testing. **Not for production.**
 | `drqminer-linux-arm64-phone.tar.gz` | Android Userland (arm64) |
 
 ```bash
-TAG=v0.0.72   # use latest tag from Releases
+TAG=v0.0.73   # use latest tag from Releases
 wget "https://github.com/DQMining/DRQ-Miner-Testing/releases/download/${TAG}/drqminer-linux-x64.tar.gz"
 tar xzf drqminer-linux-x64.tar.gz && chmod +x drqminer
 ./drqminer -V
